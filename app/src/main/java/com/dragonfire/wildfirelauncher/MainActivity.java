@@ -88,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 if(newState == BottomSheetBehavior.STATE_DRAGGING && drawerGridView.getChildAt(0).getY()!=0) {
                     mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
-
                 if(newState==BottomSheetBehavior.STATE_EXPANDED) {
                     drawerExpanded = true;
                     getWindow().getDecorView().setSystemUiVisibility(
