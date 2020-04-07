@@ -82,7 +82,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
-
                 if(newState == BottomSheetBehavior.STATE_HIDDEN && drawerGridView.getChildAt(0).getY()!=0) {
                     mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
@@ -203,7 +202,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onMenuItemClick(MenuItem item) {
                 switch (item.getItemId()) {
                     case R.id.drawer_popup_id1:
-                        Toast.makeText(getBaseContext(), appObject.getAppname(), Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivity(intent);
                         return true;
                     case R.id.drawer_popup_id2:
                         Toast.makeText(getBaseContext(), "Item2", Toast.LENGTH_SHORT).show();
@@ -442,5 +443,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         filter.addDataScheme("package");
         registerReceiver(mPackageListener, filter);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+
     }
 }
