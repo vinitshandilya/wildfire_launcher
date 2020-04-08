@@ -4,6 +4,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
@@ -50,10 +54,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private List<AppObject> installedAppList;
     private AppAdapter gridAdapter;
     private boolean drawerExpanded=false;
+    private int currentDrawerState=-1;
     private GridView drawerGridView;
     private EditText searchbar;
-    private Intent launchApp;
     private PackageListener mPackageListener;
+
+    private static final int NUM_PAGES = 5;
+    private ViewPager2 viewPager;
 
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -61,6 +68,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Instantiate a ViewPager2 and a PagerAdapter.
+        viewPager = findViewById(R.id.pager);
+        FragmentStateAdapter pagerAdapter = new ScreenSlidePagerAdapter(this);
+        viewPager.setAdapter(pagerAdapter);
 
         mDetector = new GestureDetectorCompat(this,this);
         mDetector.setOnDoubleTapListener(this);
@@ -82,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                currentDrawerState = newState;
                 if(newState == BottomSheetBehavior.STATE_HIDDEN && drawerGridView.getChildAt(0).getY()!=0) {
                     mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
@@ -151,8 +164,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
 
         // Long hold to select widgets
-        RelativeLayout homescreen = findViewById(R.id.homescreen_layout);
-        homescreen.setOnLongClickListener(new View.OnLongClickListener() {
+        viewPager.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 selectWidget();
@@ -173,8 +185,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onAppClicked(AppObject appObject, View clickedView) {
-        launchApp = getPackageManager().getLaunchIntentForPackage(appObject.getPackagename());
-        if(launchApp!=null) {
+        Intent launchApp = getPackageManager().getLaunchIntentForPackage(appObject.getPackagename());
+        if(launchApp !=null) {
             startActivity(launchApp);
         }
     }
@@ -202,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 switch (item.getItemId()) {
                     case R.id.drawer_popup_id1:
                         Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        intent.setData(Uri.parse("package:" + appObject.getPackagename()));
                         startActivity(intent);
                         return true;
                     case R.id.drawer_popup_id2:
@@ -248,23 +260,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
         //Log.d(DEBUG_TAG, "onFling: " + event1.toString() + event2.toString());
 
-        if(event1.getY() - event2.getY() > 50){ // swipe up
+        if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
 
         }
-        if(event2.getY() - event1.getY() > 50){ // swipe down
+        if(event2.getY() - event1.getY() > 300){ // swipe down
             if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
                 try {
                     Object sbservice = getSystemService("statusbar");
                     Class<?> statusbarManager = Class.forName("android.app.StatusBarManager");
                     Method showsb;
-                    if (Build.VERSION.SDK_INT >= 17) {
-                        showsb = statusbarManager.getMethod("expandNotificationsPanel");
-                    } else {
-                        showsb = statusbarManager.getMethod("expand");
-                    }
+                    showsb = statusbarManager.getMethod("expandNotificationsPanel");
                     showsb.invoke(sbservice);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -278,6 +286,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onLongPress(MotionEvent event) {
         //Log.d(DEBUG_TAG, "onLongPress: " + event.toString());
+        if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
+            selectWidget();
+        }
     }
 
     @Override
@@ -396,7 +407,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         AppWidgetProviderInfo appWidgetInfo = mAppWidgetManager.getAppWidgetInfo(appWidgetId);
         AppWidgetHostView hostView = mAppWidgetHost.createView(this, appWidgetId, appWidgetInfo);
         hostView.setAppWidget(appWidgetId, appWidgetInfo);
-        RelativeLayout homescreen = findViewById(R.id.homescreen_layout);
+        ViewPager2 homescreen = findViewById(R.id.pager);
 
         // specify position of widget
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
@@ -429,6 +440,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onPause() {
         super.onPause();
         try {
+            //currentDrawerState = BottomSheetBehavior.STATE_COLLAPSED;
             unregisterReceiver(mPackageListener);
         } catch (Exception e) {}
     }
@@ -449,6 +461,30 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         }
+        if (viewPager.getCurrentItem() == 0) {
+            // If the user is currently looking at the first step, allow the system to handle the
+            // Back button. This calls finish() on this activity and pops the back stack.
+            //super.onBackPressed();
+        } else {
+            // Otherwise, select the previous step.
+            viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
+        }
 
+    }
+
+    private class ScreenSlidePagerAdapter extends FragmentStateAdapter {
+        public ScreenSlidePagerAdapter(FragmentActivity fa) {
+            super(fa);
+        }
+
+        @Override
+        public Fragment createFragment(int position) {
+            return new ScreenSlidePageFragment();
+        }
+
+        @Override
+        public int getItemCount() {
+            return NUM_PAGES;
+        }
     }
 }

@@ -37,6 +37,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/searchbar"
         android:id="@+id/grid"
+        android:scrollbars="vertical"
         android:numColumns="4"
         android:verticalSpacing="8dp"
         android:stretchMode="columnWidth"

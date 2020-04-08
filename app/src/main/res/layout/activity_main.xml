@@ -5,12 +5,10 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <RelativeLayout
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/pager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/homescreen_layout" >
-
-    </RelativeLayout>
+        android:layout_height="match_parent" />
 
     <include layout="@layout/app_drawer_layout"/>
 
