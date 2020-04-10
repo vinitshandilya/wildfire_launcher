@@ -1,16 +1,16 @@
 package com.dragonfire.wildfirelauncher;
 
+import android.content.ClipData;
+import android.content.ClipDescription;
 import android.content.Context;
-import android.content.Intent;
+import android.util.Log;
+import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.RequestOptions;
 
 import java.util.List;
 
@@ -20,13 +20,18 @@ public class AppAdapter extends BaseAdapter {
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
     private AppLongClickListener mAppLongClickListener;
+    private AppDragListener mAppDragListener;
 
     void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
         this.mAppLongClickListener = mAppLongClickListener;
     }
 
-    public void setmAppClickListener(AppClickListener mAppClickListener) {
+    void setmAppClickListener(AppClickListener mAppClickListener) {
         this.mAppClickListener = mAppClickListener;
+    }
+
+    void setmAppDragListener(AppDragListener mAppDragListener) {
+        this.mAppDragListener = mAppDragListener;
     }
 
     AppAdapter(Context context, List<AppObject> appObjectList) {
@@ -65,13 +70,6 @@ public class AppAdapter extends BaseAdapter {
         TextView appname = v.findViewById(R.id.appname);
 
         icon.setImageDrawable(appObjectList.get(position).getAppicon());
-        /*
-        Glide.with(context).load(appObjectList.get(position).getAppicon())
-                .override(30, 30)
-                .fitCenter()
-                .circleCrop()
-                .into(icon);
-         */
         appname.setText(appObjectList.get(position).getAppname());
 
         v.setOnClickListener(new View.OnClickListener() {
@@ -88,8 +86,24 @@ public class AppAdapter extends BaseAdapter {
             public boolean onLongClick(View v) {
                 if(mAppLongClickListener!=null) {
                     mAppLongClickListener.onAppLongClicked(appObjectList.get(position), v);
+                    return true;
                 }
-                return true;
+                else return false;
+            }
+        });
+
+        v.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                Log.d("Agent", event.getAction() + "");
+                if(mAppDragListener!=null) {
+                    mAppDragListener.onAppDragged(appObjectList.get(position), v, event);
+                    Log.d("Agent", appObjectList.get(position).getAppname());
+                    return true;
+
+                }
+                else return false;
+
             }
         });
 

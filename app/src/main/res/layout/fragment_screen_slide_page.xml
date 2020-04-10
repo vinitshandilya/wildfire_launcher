@@ -4,13 +4,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <TextView style="?android:textAppearanceMedium"
-        android:padding="16dp"
-        android:lineSpacingMultiplier="1.2"
+    <LinearLayout
+        android:id="@+id/linearLayout1"
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="40sp"
-        android:textColor="#FFFFFF"
-        android:layout_gravity="center"
-        android:text="sample text" />
+        android:layout_height="match_parent" >
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#ffffff"
+            android:textSize="80sp"
+            android:layout_gravity="center_horizontal"
+            android:text="pager" />
+
+    </LinearLayout>
+
 </ScrollView>

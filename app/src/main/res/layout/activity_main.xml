@@ -5,10 +5,53 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/pager"
+    <LinearLayout
+        android:id="@+id/grandfather"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:weightSum="100">
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/pager"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="40"/>
+
+        <RelativeLayout
+            android:id="@+id/dock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="40" >
+
+            <GridView
+                android:layout_marginBottom="20dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/dockgrid"
+                android:scrollbars="vertical"
+                android:numColumns="4"
+                android:verticalSpacing="8dp"
+                android:stretchMode="columnWidth"
+                android:layout_gravity="center" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/dockview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="20"
+            android:background="#80ffffff"/>
+
+
+
+
+
+    </LinearLayout>
+
+
+
 
     <include layout="@layout/app_drawer_layout"/>
 

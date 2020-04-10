@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -14,26 +15,38 @@ import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipDescription;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -46,7 +59,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
-        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener {
+        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener, AppDragListener {
 
     private static final String DEBUG_TAG = "Gestures";
     private GestureDetectorCompat mDetector;
@@ -58,9 +71,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private GridView drawerGridView;
     private EditText searchbar;
     private PackageListener mPackageListener;
+    private PopupMenu popupMenu;
+
+    DisplayMetrics displaymetrics;
+    int screenHight, screenWidth;
 
     private static final int NUM_PAGES = 5;
     private ViewPager2 viewPager;
+    String TAG="Wildfire";
+
+    List<AppObject> dockapps;
+    GridView dockgrid;
+    AppAdapter dockadapter;
+    AppObject myapp;
+
 
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -68,6 +92,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        displaymetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+        screenHight = displaymetrics.heightPixels;
+        screenWidth = displaymetrics.widthPixels;
+
+        //Dock
+        dockgrid = findViewById(R.id.dockgrid);
+        dockapps = new ArrayList<>();
+        dockadapter = new AppAdapter(getBaseContext(), dockapps);
+        dockadapter.setmAppClickListener(this);
+        dockadapter.setmAppLongClickListener(this);
+        //dockadapter.setmAppDragListener(this);
+        dockgrid.setAdapter(dockadapter);
+
 
         // Instantiate a ViewPager2 and a PagerAdapter.
         viewPager = findViewById(R.id.pager);
@@ -87,8 +126,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         getInstalledAppList(); // fill in the installedAppList
         searchbar = findViewById(R.id.searchbar);
         gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
+
         gridAdapter.setmAppClickListener(this);
         gridAdapter.setmAppLongClickListener(this);
+        gridAdapter.setmAppDragListener(this);
+
         drawerGridView.setAdapter(gridAdapter);
 
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
@@ -110,6 +152,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
                 if(newState == BottomSheetBehavior.STATE_COLLAPSED) {
                     drawerExpanded = false;
+                    try{
+                        popupMenu.dismiss();
+                    } catch(Exception e) {}
+
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
@@ -193,8 +239,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onAppLongClicked(final AppObject appObject, View clickedView) {
-        PopupMenu popupMenu = new PopupMenu(getBaseContext(), clickedView);
+
+        popupMenu = new PopupMenu(getBaseContext(), clickedView);
         popupMenu.inflate(R.menu.drawer_popup);
+        myapp = appObject;
 
         Object menuHelper;
         Class[] argTypes;
@@ -204,9 +252,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             menuHelper = fMenuHelper.get(popupMenu);
             argTypes = new Class[]{boolean.class};
             menuHelper.getClass().getDeclaredMethod("setForceShowIcon", argTypes).invoke(menuHelper, true);
-        } catch (Exception e) {
-
-        }
+        } catch (Exception e) {}
 
         popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override
@@ -239,6 +285,81 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
         popupMenu.show();
+
+        // Drag code here inside applong click
+        ClipData.Item item = new ClipData.Item(appObject.getAppname());
+        ClipData dragData = new ClipData(
+                (CharSequence) clickedView.getTag(),
+                new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                item);
+        //View.DragShadowBuilder myShadow = new MyDragShadowBuilder(clickedView.findViewById(R.id.appicondrawable));
+        clickedView.startDrag(dragData,  // the data to be dragged
+                new View.DragShadowBuilder(clickedView),  // the drag shadow builder
+                null,      // no need to use local data
+                0          // flags (not currently used, set to 0)
+        );
+    }
+
+    @Override
+    public void onAppDragged(AppObject ao, View draggedView, DragEvent event) {
+        Log.d("Smith", ao.getAppname());
+        ImageView img = draggedView.findViewById(R.id.appicondrawable);
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+
+        switch(event.getAction()) {
+            case DragEvent.ACTION_DRAG_STARTED:
+                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_STARTED");
+                img.setColorFilter(Color.argb(100, 255, 255, 255));
+                break;
+
+            case DragEvent.ACTION_DRAG_ENTERED:
+                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_ENTERED");
+                break;
+
+            case DragEvent.ACTION_DRAG_EXITED :
+                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_EXITED");
+
+                break;
+
+            case DragEvent.ACTION_DRAG_LOCATION  :
+                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_LOCATION");
+                break;
+
+            case DragEvent.ACTION_DRAG_ENDED   :
+                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_ENDED");
+                if(!dockapps.contains(myapp)) {
+                    dockapps.add(myapp);
+                    dockadapter.notifyDataSetChanged();
+                }
+                img.clearColorFilter();
+
+                /*int x_cord = (int) event.getX() - (draggedView.getWidth()/2);
+                int y_cord = (int) event.getY() - (draggedView.getHeight());
+                RelativeLayout area = findViewById(R.id.droparea);
+                int W = area.getWidth();
+                int H = area.getHeight();
+                ImageView imageView = new ImageView(this);
+                imageView.setImageDrawable(myapp.getAppicon());
+                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(draggedView.getWidth(), draggedView.getHeight());
+                layoutParams.leftMargin = W/2 - (draggedView.getWidth()/2);
+                layoutParams.topMargin = H/2 - (draggedView.getHeight());
+                area.addView(imageView, layoutParams);
+                img.clearColorFilter();*/
+
+
+                break;
+
+            case DragEvent.ACTION_DROP:
+
+                break;
+
+            default: break;
+        }
+
+
+
+
     }
 
     // Gesture intercept
@@ -295,6 +416,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
         //Log.d(DEBUG_TAG, "onScroll: " + event1.toString() + event2.toString());
         hideKeypad();
+        try{
+            popupMenu.dismiss();
+        } catch(Exception e) {
+
+        }
         return true;
     }
 
@@ -485,6 +611,57 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         @Override
         public int getItemCount() {
             return NUM_PAGES;
+        }
+    }
+
+    private static class MyDragShadowBuilder extends View.DragShadowBuilder {
+
+        // The drag shadow image, defined as a drawable thing
+        private static Drawable shadow;
+
+        // Defines the constructor for myDragShadowBuilder
+        MyDragShadowBuilder(View v) {
+
+            // Stores the View parameter passed to myDragShadowBuilder.
+            super(v);
+
+            // Creates a draggable image that will fill the Canvas provided by the system.
+            shadow = new ColorDrawable(Color.BLUE);
+        }
+
+        // Defines a callback that sends the drag shadow dimensions and touch point back to the
+        // system.
+        @Override
+        public void onProvideShadowMetrics (Point size, Point touch) {
+            // Defines local variables
+            int width, height;
+
+            // Sets the width of the shadow to half the width of the original View
+            width = getView().getWidth() / 2;
+
+            // Sets the height of the shadow to half the height of the original View
+            height = getView().getHeight() / 2;
+
+            // The drag shadow is a ColorDrawable. This sets its dimensions to be the same as the
+            // Canvas that the system will provide. As a result, the drag shadow will fill the
+            // Canvas.
+            shadow.setBounds(0, 0, width, height);
+
+            // Sets the size parameter's width and height values. These get back to the system
+            // through the size parameter.
+            size.set(width, height);
+
+            // Sets the touch point's position to be in the middle of the drag shadow
+            touch.set(width / 2, height / 2);
+        }
+
+        // Defines a callback that draws the drag shadow in a Canvas that the system constructs
+        // from the dimensions passed in onProvideShadowMetrics().
+        @Override
+        public void onDrawShadow(Canvas canvas) {
+
+            // Draws the ColorDrawable in the Canvas passed in from the system.
+            shadow.draw(canvas);
         }
     }
 }
