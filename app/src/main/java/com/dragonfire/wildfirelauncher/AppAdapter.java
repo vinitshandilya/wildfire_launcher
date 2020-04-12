@@ -1,7 +1,10 @@
 package com.dragonfire.wildfirelauncher;
 
 import android.content.Context;
+import android.util.Log;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -10,12 +13,15 @@ import android.widget.TextView;
 
 import java.util.List;
 
+import androidx.core.view.GestureDetectorCompat;
+
 public class AppAdapter extends BaseAdapter {
 
     private Context context;
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
     private AppLongClickListener mAppLongClickListener;
+    private GestureDetectorCompat mDetector;
 
     void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
         this.mAppLongClickListener = mAppLongClickListener;
@@ -85,5 +91,4 @@ public class AppAdapter extends BaseAdapter {
 
         return v;
     }
-
 }

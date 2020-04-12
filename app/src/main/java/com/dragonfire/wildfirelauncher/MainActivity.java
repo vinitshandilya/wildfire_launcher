@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
+import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,6 +25,7 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -39,6 +41,7 @@ import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
@@ -192,7 +195,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         gridAdapter.notifyDataSetChanged();
                     }
                 }
-
             }
         });
 
@@ -219,15 +221,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
+
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d(TAG, "HOME: ACTION_DRAG_STARTED");
-                        Log.d(TAG, v.toString());
+                        Point dragstart = getTouchPositionFromDragEvent(v, event);
+                        Log.d("Agent", "ACTION_DRAG_STARTED  => " + dragstart.x + ", " + dragstart.y + " time: " + System.currentTimeMillis());
                         //img.setColorFilter(Color.argb(100, 255, 255, 255));
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d(TAG, "HOME: ACTION_DRAG_ENTERED");
-                        Log.d(TAG, v.toString());
+                        Point dragentered = getTouchPositionFromDragEvent(v, event);
+                        Log.d("Agent", "ACTION_DRAG_ENTERED  => " + dragentered.x + ", " + dragentered.y);
                         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                         try {
                             popupMenu.dismiss();
@@ -235,16 +238,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         catch (Exception e) {
                             System.out.println(e.toString());
                         }
+                        break;
+                    case DragEvent.ACTION_DRAG_LOCATION:
+                        Point draglocation = getTouchPositionFromDragEvent(v, event);
+                        Log.d("Agent", "ACTION_DRAG_LOCATION => " + draglocation.x + ", " + draglocation.y);
 
                         break;
                     case DragEvent.ACTION_DRAG_EXITED:
                         Log.d(TAG, v.toString());
-                        Log.d(TAG, "HOME: ACTION_DRAG_EXITED");
+                        Point dragexited = getTouchPositionFromDragEvent(v, event);
+                        Log.d("Agent", "ACTION_DRAG_EXITED  => " + dragexited.x + ", " + dragexited.y);
 
                         break;
                     case DragEvent.ACTION_DROP:
                         //Log.d(TAG, v.toString());
-                        Log.d(TAG, "HOME: ACTION_DRAG_DROP");
+                        Log.d(TAG, "ACTION_DRAG_DROP");
                         ImageView appicon = new ImageView(getBaseContext());
                         appicon.setImageDrawable(myapp.getAppicon());
 
@@ -262,6 +270,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
 
                         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                        appicon.measure(0, 0);
+                        int icon_width = appicon.getMeasuredWidth();
+                        int icon_height = appicon.getMeasuredHeight();
+                        Log.d(TAG, "Vinit icon width " + icon_width);
                         params.topMargin = snap_row * (H/6);
                         params.leftMargin = snap_col * (H/6);
                         homescreen.addView(appicon, params);
@@ -273,8 +285,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
                         label.setTextColor(Color.WHITE);
                         RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-                        labelparams.topMargin = snap_row * (H/6) + 120;
-                        labelparams.leftMargin = snap_col * (H/6);
+                        label.measure(0, 0);       //must call measure!
+                        int label_height = label.getMeasuredHeight(); //get height
+                        int label_width = label.getMeasuredWidth();  //get width
+                        labelparams.topMargin = snap_row * (H/6) + 125;
+                        labelparams.leftMargin = snap_col * (H/6) + 60 - (label_width/2);
                         homescreen.addView(label, labelparams);
 
                         ClipData.Item item = event.getClipData().getItemAt(0);
@@ -283,7 +298,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         appicon.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                // Gets the item containing the dragged data
                                 Log.d(TAG, "Dragged data is " + dragData);
                                 launchApp(app[1]); // launch app from package name
                             }
@@ -293,9 +307,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                     case DragEvent.ACTION_DRAG_ENDED:
                         Log.d(TAG, v.toString());
-                        Log.d(TAG, "HOME: ACTION_DRAG_ENDED");
-
-
+                        Log.d(TAG, "ACTION_DRAG_ENDED");
                         break;
 
                     default:
@@ -393,6 +405,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean onTouchEvent(MotionEvent event){
         if (this.mDetector.onTouchEvent(event)) {
+            if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                Log.d("Smith", "ON TOUCH EVENT DOWN => " + event.getX() + ", " + event.getY());
+            }
+            else if(event.getAction() == MotionEvent.ACTION_UP) {
+                Log.d("Smith", "ON TOUCH EVENT UP => " + event.getX() + ", " + event.getY());
+            }
             return true;
         }
         return super.onTouchEvent(event);
@@ -400,13 +418,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onDown(MotionEvent event) {
-        //Log.d(DEBUG_TAG,"onDown: " + event.toString());
+        Log.d("Agent", "ON DOWN => " + event.toString());
         return true;
     }
 
     @Override
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
-        //Log.d(DEBUG_TAG, "onFling: " + event1.toString() + event2.toString());
+        Log.d("Agent", "onFling: " + event1.toString() + event2.toString());
 
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
@@ -433,7 +451,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onLongPress(MotionEvent event) {
-        //Log.d(DEBUG_TAG, "onLongPress: " + event.toString());
+        Log.d("Agent", "ON LONG PRESSED. (Xlong, Ylong) => " + event.getX() + ", " + event.getY());
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
@@ -441,7 +459,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
-        //Log.d(DEBUG_TAG, "onScroll: " + event1.toString() + event2.toString());
+        //Log.d("Agent", "onScroll: " + event1.toString() + event2.toString());
         hideKeypad();
         try{
             popupMenu.dismiss();
@@ -453,7 +471,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onShowPress(MotionEvent event) {
-        //Log.d(DEBUG_TAG, "onShowPress: " + event.toString());
+        Log.d("Agent", "onShowPress: " + event.toString());
     }
 
     @Override
@@ -483,6 +501,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) { // Otherwise the touch and fling won't work together
         super.dispatchTouchEvent(ev);
+        Log.d("Agent", "Dispatch touch event (X, Y) => " + ev.getX() + ", " + ev.getY());
         return mDetector.onTouchEvent(ev);
     }
 
@@ -626,7 +645,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     private class ScreenSlidePagerAdapter extends FragmentStateAdapter {
-        public ScreenSlidePagerAdapter(FragmentActivity fa) {
+        ScreenSlidePagerAdapter(FragmentActivity fa) {
             super(fa);
         }
 
@@ -639,56 +658,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         public int getItemCount() {
             return NUM_PAGES;
         }
+
+
     }
 
-    private static class MyDragShadowBuilder extends View.DragShadowBuilder {
-
-        // The drag shadow image, defined as a drawable thing
-        private static Drawable shadow;
-
-        // Defines the constructor for myDragShadowBuilder
-        MyDragShadowBuilder(View v) {
-
-            // Stores the View parameter passed to myDragShadowBuilder.
-            super(v);
-
-            // Creates a draggable image that will fill the Canvas provided by the system.
-            shadow = new ColorDrawable(Color.BLUE);
-        }
-
-        // Defines a callback that sends the drag shadow dimensions and touch point back to the
-        // system.
-        @Override
-        public void onProvideShadowMetrics (Point size, Point touch) {
-            // Defines local variables
-            int width, height;
-
-            // Sets the width of the shadow to half the width of the original View
-            width = getView().getWidth() / 2;
-
-            // Sets the height of the shadow to half the height of the original View
-            height = getView().getHeight() / 2;
-
-            // The drag shadow is a ColorDrawable. This sets its dimensions to be the same as the
-            // Canvas that the system will provide. As a result, the drag shadow will fill the
-            // Canvas.
-            shadow.setBounds(0, 0, width, height);
-
-            // Sets the size parameter's width and height values. These get back to the system
-            // through the size parameter.
-            size.set(width, height);
-
-            // Sets the touch point's position to be in the middle of the drag shadow
-            touch.set(width / 2, height / 2);
-        }
-
-        // Defines a callback that draws the drag shadow in a Canvas that the system constructs
-        // from the dimensions passed in onProvideShadowMetrics().
-        @Override
-        public void onDrawShadow(Canvas canvas) {
-
-            // Draws the ColorDrawable in the Canvas passed in from the system.
-            shadow.draw(canvas);
-        }
+    public static Point getTouchPositionFromDragEvent(View item, DragEvent event) {
+        Rect rItem = new Rect();
+        item.getGlobalVisibleRect(rItem);
+        return new Point(rItem.left + Math.round(event.getX()), rItem.top + Math.round(event.getY()));
     }
 }
