@@ -1,10 +1,6 @@
 package com.dragonfire.wildfirelauncher;
 
-import android.content.ClipData;
-import android.content.ClipDescription;
 import android.content.Context;
-import android.util.Log;
-import android.view.DragEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,7 +16,6 @@ public class AppAdapter extends BaseAdapter {
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
     private AppLongClickListener mAppLongClickListener;
-    private AppDragListener mAppDragListener;
 
     void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
         this.mAppLongClickListener = mAppLongClickListener;
@@ -28,10 +23,6 @@ public class AppAdapter extends BaseAdapter {
 
     void setmAppClickListener(AppClickListener mAppClickListener) {
         this.mAppClickListener = mAppClickListener;
-    }
-
-    void setmAppDragListener(AppDragListener mAppDragListener) {
-        this.mAppDragListener = mAppDragListener;
     }
 
     AppAdapter(Context context, List<AppObject> appObjectList) {
@@ -89,21 +80,6 @@ public class AppAdapter extends BaseAdapter {
                     return true;
                 }
                 else return false;
-            }
-        });
-
-        v.setOnDragListener(new View.OnDragListener() {
-            @Override
-            public boolean onDrag(View v, DragEvent event) {
-                Log.d("Agent", event.getAction() + "");
-                if(mAppDragListener!=null) {
-                    mAppDragListener.onAppDragged(appObjectList.get(position), v, event);
-                    Log.d("Agent", appObjectList.get(position).getAppname());
-                    return true;
-
-                }
-                else return false;
-
             }
         });
 

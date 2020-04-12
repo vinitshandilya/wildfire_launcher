@@ -16,7 +16,8 @@
             android:textColor="#ffffff"
             android:textSize="80sp"
             android:layout_gravity="center_horizontal"
-            android:text="pager" />
+            android:layout_marginTop="40dp"
+            android:text="10:11 AM" />
 
     </LinearLayout>
 

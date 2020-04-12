@@ -5,53 +5,25 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/grandfather"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:weightSum="100">
+        android:orientation="vertical">
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/pager"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="40"/>
+            android:layout_height="wrap_content"/>
 
         <RelativeLayout
-            android:id="@+id/dock"
+            android:id="@+id/homescreen"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="40" >
+            android:layout_height="match_parent"
+            android:layout_below="@+id/pager"
+            android:layout_gravity="center" />
 
-            <GridView
-                android:layout_marginBottom="20dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/dockgrid"
-                android:scrollbars="vertical"
-                android:numColumns="4"
-                android:verticalSpacing="8dp"
-                android:stretchMode="columnWidth"
-                android:layout_gravity="center" />
-
-        </RelativeLayout>
-
-        <RelativeLayout
-            android:id="@+id/dockview"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="20"
-            android:background="#80ffffff"/>
-
-
-
-
-
-    </LinearLayout>
-
-
-
+    </RelativeLayout>
 
     <include layout="@layout/app_drawer_layout"/>
 

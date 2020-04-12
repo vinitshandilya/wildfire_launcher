@@ -33,8 +33,10 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.DragEvent;
 import android.view.GestureDetector;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -59,11 +61,12 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
-        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener, AppDragListener {
+        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener {
 
     private static final String DEBUG_TAG = "Gestures";
     private GestureDetectorCompat mDetector;
     private BottomSheetBehavior mBottomSheetBehavior;
+    private View bottomSheet;
     private List<AppObject> installedAppList;
     private AppAdapter gridAdapter;
     private boolean drawerExpanded=false;
@@ -80,10 +83,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private ViewPager2 viewPager;
     String TAG="Wildfire";
 
-    List<AppObject> dockapps;
-    GridView dockgrid;
-    AppAdapter dockadapter;
     AppObject myapp;
+    View longclickedview;
 
 
 
@@ -98,16 +99,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         screenHight = displaymetrics.heightPixels;
         screenWidth = displaymetrics.widthPixels;
 
-        //Dock
-        dockgrid = findViewById(R.id.dockgrid);
-        dockapps = new ArrayList<>();
-        dockadapter = new AppAdapter(getBaseContext(), dockapps);
-        dockadapter.setmAppClickListener(this);
-        dockadapter.setmAppLongClickListener(this);
-        //dockadapter.setmAppDragListener(this);
-        dockgrid.setAdapter(dockadapter);
-
-
         // Instantiate a ViewPager2 and a PagerAdapter.
         viewPager = findViewById(R.id.pager);
         FragmentStateAdapter pagerAdapter = new ScreenSlidePagerAdapter(this);
@@ -116,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mDetector = new GestureDetectorCompat(this,this);
         mDetector.setOnDoubleTapListener(this);
 
-        View bottomSheet = findViewById( R.id.bottom_sheet );
+        bottomSheet = findViewById( R.id.bottom_sheet );
         mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         mBottomSheetBehavior.setHideable(false);
 
@@ -129,7 +120,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         gridAdapter.setmAppClickListener(this);
         gridAdapter.setmAppLongClickListener(this);
-        gridAdapter.setmAppDragListener(this);
 
         drawerGridView.setAdapter(gridAdapter);
 
@@ -152,10 +142,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
                 if(newState == BottomSheetBehavior.STATE_COLLAPSED) {
                     drawerExpanded = false;
-                    try{
-                        popupMenu.dismiss();
-                    } catch(Exception e) {}
-
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
@@ -165,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                //Log.d("slideoffset", slideOffset + "");
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -227,13 +214,113 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mPackageListener = new PackageListener();
         registerReceiver(mPackageListener, filter);
 
+        // Drag receiver on home screen grid
+        final RelativeLayout homescreen = findViewById(R.id.homescreen);
+        homescreen.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch(event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        Log.d(TAG, "HOME: ACTION_DRAG_STARTED");
+                        Log.d(TAG, v.toString());
+                        //img.setColorFilter(Color.argb(100, 255, 255, 255));
+
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        Log.d(TAG, "HOME: ACTION_DRAG_ENTERED");
+                        Log.d(TAG, v.toString());
+                        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                        try {
+                            popupMenu.dismiss();
+                        }
+                        catch (Exception e) {
+                            System.out.println(e.toString());
+                        }
+
+                        break;
+                    case DragEvent.ACTION_DRAG_EXITED:
+                        Log.d(TAG, v.toString());
+                        Log.d(TAG, "HOME: ACTION_DRAG_EXITED");
+
+                        break;
+                    case DragEvent.ACTION_DROP:
+                        //Log.d(TAG, v.toString());
+                        Log.d(TAG, "HOME: ACTION_DRAG_DROP");
+                        ImageView appicon = new ImageView(getBaseContext());
+                        appicon.setImageDrawable(myapp.getAppicon());
+
+                        int W = homescreen.getWidth();
+                        int H = homescreen.getHeight();
+
+                        int cursor_x = (int) event.getX();
+                        int cursor_y = (int) event.getY();
+
+                        int snap_row = Math.round(cursor_y/(H/6));
+                        int snap_col = Math.round(cursor_x/(H/6));
+
+                        Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
+                        Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
+                        Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
+
+                        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                        params.topMargin = snap_row * (H/6);
+                        params.leftMargin = snap_col * (H/6);
+                        homescreen.addView(appicon, params);
+
+                        // Add label
+                        TextView label = new TextView(getBaseContext());
+                        label.setText(myapp.getAppname());
+                        label.setSingleLine();
+                        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                        label.setTextColor(Color.WHITE);
+                        RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+                        labelparams.topMargin = snap_row * (H/6) + 120;
+                        labelparams.leftMargin = snap_col * (H/6);
+                        homescreen.addView(label, labelparams);
+
+                        ClipData.Item item = event.getClipData().getItemAt(0);
+                        final String dragData = item.getText().toString();
+                        final String[] app = dragData.split("~");
+                        appicon.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                // Gets the item containing the dragged data
+                                Log.d(TAG, "Dragged data is " + dragData);
+                                launchApp(app[1]); // launch app from package name
+                            }
+                        });
+
+                        break;
+
+                    case DragEvent.ACTION_DRAG_ENDED:
+                        Log.d(TAG, v.toString());
+                        Log.d(TAG, "HOME: ACTION_DRAG_ENDED");
+
+
+                        break;
+
+                    default:
+                        break;
+
+                }
+
+                return true;
+            }
+        });
+
+
+
+
     }
 
     @Override
     public void onAppClicked(AppObject appObject, View clickedView) {
-        Intent launchApp = getPackageManager().getLaunchIntentForPackage(appObject.getPackagename());
-        if(launchApp !=null) {
-            startActivity(launchApp);
+        launchApp(appObject.getPackagename());
+    }
+
+    private void launchApp(String packagename) {
+        Intent in = getPackageManager().getLaunchIntentForPackage(packagename);
+        if(in !=null) {
+            startActivity(in);
         }
     }
 
@@ -242,7 +329,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         popupMenu = new PopupMenu(getBaseContext(), clickedView);
         popupMenu.inflate(R.menu.drawer_popup);
+        longclickedview = clickedView;
         myapp = appObject;
+
+        Log.d(TAG, "Long clicked on: " + appObject.getAppname());
 
         Object menuHelper;
         Class[] argTypes;
@@ -286,80 +376,17 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
         popupMenu.show();
 
-        // Drag code here inside applong click
-        ClipData.Item item = new ClipData.Item(appObject.getAppname());
+        // Drag code here inside applongclick
+        ClipData.Item item = new ClipData.Item(appObject.getAppname()+"~"+appObject.getPackagename()+"~"+appObject.getAppicon());
         ClipData dragData = new ClipData(
                 (CharSequence) clickedView.getTag(),
                 new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
                 item);
-        //View.DragShadowBuilder myShadow = new MyDragShadowBuilder(clickedView.findViewById(R.id.appicondrawable));
         clickedView.startDrag(dragData,  // the data to be dragged
                 new View.DragShadowBuilder(clickedView),  // the drag shadow builder
                 null,      // no need to use local data
                 0          // flags (not currently used, set to 0)
         );
-    }
-
-    @Override
-    public void onAppDragged(AppObject ao, View draggedView, DragEvent event) {
-        Log.d("Smith", ao.getAppname());
-        ImageView img = draggedView.findViewById(R.id.appicondrawable);
-        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-
-
-        switch(event.getAction()) {
-            case DragEvent.ACTION_DRAG_STARTED:
-                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_STARTED");
-                img.setColorFilter(Color.argb(100, 255, 255, 255));
-                break;
-
-            case DragEvent.ACTION_DRAG_ENTERED:
-                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_ENTERED");
-                break;
-
-            case DragEvent.ACTION_DRAG_EXITED :
-                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_EXITED");
-
-                break;
-
-            case DragEvent.ACTION_DRAG_LOCATION  :
-                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_LOCATION");
-                break;
-
-            case DragEvent.ACTION_DRAG_ENDED   :
-                Log.d(TAG, "Action is DragEvent.ACTION_DRAG_ENDED");
-                if(!dockapps.contains(myapp)) {
-                    dockapps.add(myapp);
-                    dockadapter.notifyDataSetChanged();
-                }
-                img.clearColorFilter();
-
-                /*int x_cord = (int) event.getX() - (draggedView.getWidth()/2);
-                int y_cord = (int) event.getY() - (draggedView.getHeight());
-                RelativeLayout area = findViewById(R.id.droparea);
-                int W = area.getWidth();
-                int H = area.getHeight();
-                ImageView imageView = new ImageView(this);
-                imageView.setImageDrawable(myapp.getAppicon());
-                RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(draggedView.getWidth(), draggedView.getHeight());
-                layoutParams.leftMargin = W/2 - (draggedView.getWidth()/2);
-                layoutParams.topMargin = H/2 - (draggedView.getHeight());
-                area.addView(imageView, layoutParams);
-                img.clearColorFilter();*/
-
-
-                break;
-
-            case DragEvent.ACTION_DROP:
-
-                break;
-
-            default: break;
-        }
-
-
-
-
     }
 
     // Gesture intercept
