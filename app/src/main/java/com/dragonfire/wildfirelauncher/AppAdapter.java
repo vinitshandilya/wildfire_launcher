@@ -7,7 +7,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
@@ -16,17 +15,25 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import androidx.core.view.GestureDetectorCompat;
+
 public class AppAdapter extends BaseAdapter {
 
     private Context context;
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
     private AppLongClickListener mAppLongClickListener;
+    private AppActionDownListener mAppActionDownListener;
     private AppDragListener mAppDragListener;
     private long t1=0, t2=0;
+    private GestureDetectorCompat mDetector;
 
     void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
         this.mAppLongClickListener = mAppLongClickListener;
+    }
+
+    void setmAppActionDownListener(AppActionDownListener mAppActionDownListener) {
+        this.mAppActionDownListener = mAppActionDownListener;
     }
 
     void setmAppClickListener(AppClickListener mAppClickListener) {
@@ -75,31 +82,14 @@ public class AppAdapter extends BaseAdapter {
         icon.setImageDrawable(appObjectList.get(position).getAppicon());
         appname.setText(appObjectList.get(position).getAppname());
 
-        /*v.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(mAppClickListener!=null) {
-                    mAppClickListener.onAppClicked(appObjectList.get(position), v);
-                }
-            }
-        });*/
-
-        /*v.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if(mAppLongClickListener!=null) {
-                    mAppLongClickListener.onAppLongClicked(appObjectList.get(position), v);
-                    return true;
-                }
-                else return false;
-            }
-        });*/
-
         v.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent ev) {
                 switch (ev.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
+                        if(mAppActionDownListener != null) {
+                            mAppActionDownListener.onAppActionDown(appObjectList.get(position), v);
+                        }
                         Log.d("COOK", "ACTION_DOWN: " + ev.getX() + ", " + ev.getY());
                         t1 = System.currentTimeMillis();
                         return true;
@@ -107,21 +97,21 @@ public class AppAdapter extends BaseAdapter {
                     case MotionEvent.ACTION_UP:
                         Log.d("COOK", "ACTION_UP: " + ev.getX() + ", " + ev.getY());
                         t2 = System.currentTimeMillis();
-                        if(Math.abs(t2-t1) <=200) {
+                        if(Math.abs(t2-t1) <=300) {
                             Toast.makeText(context, "Click event", Toast.LENGTH_SHORT).show();
                             if(mAppClickListener!=null) {
                                 mAppClickListener.onAppClicked(appObjectList.get(position), v);
                             }
                         }
-                        else if(Math.abs(t2-t1) > 200) {
-                            Toast.makeText(context, "Long click event", Toast.LENGTH_SHORT).show();
-                            if(mAppLongClickListener!=null) {
+                        else if(Math.abs(t2-t1) > 300) {
+                            //Toast.makeText(context, "Long click event", Toast.LENGTH_SHORT).show();
+                            /*if(mAppLongClickListener!=null) {
                                 mAppLongClickListener.onAppLongClicked(appObjectList.get(position), v);
                                 return true;
                             }
-                            else return false;
+                            else return false;*/
                         }
-                        return true;
+                        return false;
 
                     case MotionEvent.ACTION_MOVE:
                         Log.d("COOK", "ACTION_MOVE: " + ev.getX() + ", " + ev.getY());
@@ -152,4 +142,5 @@ public class AppAdapter extends BaseAdapter {
 
         return v;
     }
+
 }

@@ -63,13 +63,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
-        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener, AppDragListener {
+public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, AppClickListener, AppDragListener, AppActionDownListener {
 
-    private static final String DEBUG_TAG = "Gestures";
     private GestureDetectorCompat mDetector;
     private BottomSheetBehavior mBottomSheetBehavior;
-    private View bottomSheet;
     private List<AppObject> installedAppList;
     private AppAdapter gridAdapter;
     private boolean drawerExpanded=false;
@@ -106,9 +103,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         viewPager.setAdapter(pagerAdapter);
 
         mDetector = new GestureDetectorCompat(this,this);
-        mDetector.setOnDoubleTapListener(this);
 
-        bottomSheet = findViewById( R.id.bottom_sheet );
+        View bottomSheet = findViewById(R.id.bottom_sheet);
         mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         mBottomSheetBehavior.setHideable(false);
 
@@ -120,8 +116,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
 
         gridAdapter.setmAppClickListener(this);
-        gridAdapter.setmAppLongClickListener(this);
         gridAdapter.setmAppDragListener(this);
+        gridAdapter.setmAppActionDownListener(this);
 
         drawerGridView.setAdapter(gridAdapter);
 
@@ -186,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 gridAdapter = new AppAdapter(getBaseContext(), filteredApps);
                 drawerGridView.setAdapter(gridAdapter);
                 gridAdapter.setmAppClickListener(MainActivity.this);
-                gridAdapter.setmAppLongClickListener(MainActivity.this);
+                gridAdapter.setmAppActionDownListener(MainActivity.this);
                 for(AppObject currentApp : installedAppList) {
                     if(currentApp.getAppname().toLowerCase().contains(s.toString().toLowerCase())) {
                         Log.d("Wildfire", currentApp.getAppname());
@@ -223,13 +219,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Point dragstart = getTouchPositionFromDragEvent(v, event);
-                        Log.d("Agent", "ACTION_DRAG_STARTED  => " + dragstart.x + ", " + dragstart.y + " time: " + System.currentTimeMillis());
-                        //img.setColorFilter(Color.argb(100, 255, 255, 255));
+                        return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Point dragentered = getTouchPositionFromDragEvent(v, event);
-                        Log.d("Agent", "ACTION_DRAG_ENTERED  => " + dragentered.x + ", " + dragentered.y);
                         return true;
 
                     case DragEvent.ACTION_DROP:
@@ -306,81 +298,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         launchApp(appObject.getPackagename());
     }
 
-    @Override
-    public void onAppLongClicked(final AppObject appObject, View clickedView) {
-
-        popupMenu = new PopupMenu(getBaseContext(), clickedView);
-        popupMenu.inflate(R.menu.drawer_popup);
-        longclickedview = clickedView;
-        myapp = appObject;
-
-        Log.d(TAG, "Long clicked on: " + appObject.getAppname());
-
-        Object menuHelper;
-        Class[] argTypes;
-        try {
-            Field fMenuHelper = PopupMenu.class.getDeclaredField("mPopup");
-            fMenuHelper.setAccessible(true);
-            menuHelper = fMenuHelper.get(popupMenu);
-            argTypes = new Class[]{boolean.class};
-            menuHelper.getClass().getDeclaredMethod("setForceShowIcon", argTypes).invoke(menuHelper, true);
-        } catch (Exception e) {}
-
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                switch (item.getItemId()) {
-                    case R.id.drawer_popup_id1:
-                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        intent.setData(Uri.parse("package:" + appObject.getPackagename()));
-                        startActivity(intent);
-                        return true;
-                    case R.id.drawer_popup_id2:
-                        Toast.makeText(getBaseContext(), "Item2", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.drawer_popup_id3:
-                        Toast.makeText(getBaseContext(), "Item3", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.drawer_popup_id4:
-                        Toast.makeText(getBaseContext(), "Item5", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.drawer_popup_id5:
-                        Uri packageURI = Uri.parse("package:" + appObject.getPackagename());
-                        Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
-                        startActivity(uninstallIntent);
-
-                        return true;
-
-                    default:
-                        return false;
-                }
-            }
-        });
-        popupMenu.show();
-
-        // Drag code here inside applongclick
-        /*ClipData.Item item = new ClipData.Item(appObject.getAppname()+"~"+appObject.getPackagename()+"~"+appObject.getAppicon());
-        ClipData dragData = new ClipData(
-                (CharSequence) clickedView.getTag(),
-                new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                item);
-        clickedView.startDrag(dragData,  // the data to be dragged
-                new View.DragShadowBuilder(clickedView),  // the drag shadow builder
-                null,      // no need to use local data
-                0          // flags (not currently used, set to 0)
-        );*/
-    }
-
     // Gesture intercept
     @Override
     public boolean onTouchEvent(MotionEvent event){
         if (this.mDetector.onTouchEvent(event)) {
-            if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                Log.d("Smith", "ON TOUCH EVENT DOWN => " + event.getX() + ", " + event.getY());
-            }
-            else if(event.getAction() == MotionEvent.ACTION_UP) {
-                Log.d("Smith", "ON TOUCH EVENT UP => " + event.getX() + ", " + event.getY());
-            }
             return true;
         }
         return super.onTouchEvent(event);
@@ -388,7 +309,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onDown(MotionEvent event) {
-        Log.d("Agent", "ON DOWN => " + event.toString());
         return true;
     }
 
@@ -420,11 +340,66 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     @Override
+    public void onAppActionDown(AppObject appObject, View clickedView) {
+        myapp = appObject;
+        longclickedview = clickedView;
+
+    }
+
+    @Override
     public void onLongPress(MotionEvent event) {
-        //Log.d("Agent", "ON LONG PRESSED. (Xlong, Ylong) => " + event.getX() + ", " + event.getY());
+        Toast.makeText(getBaseContext(), "OnLongPressed " + myapp.getAppname(), Toast.LENGTH_SHORT).show();
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
+        // Else if an app is clicked
+
+        popupMenu = new PopupMenu(getBaseContext(), longclickedview);
+        popupMenu.inflate(R.menu.drawer_popup);
+
+        Log.d(TAG, "Long clicked on: " + myapp.getAppname());
+
+        Object menuHelper;
+        Class[] argTypes;
+        try {
+            Field fMenuHelper = PopupMenu.class.getDeclaredField("mPopup");
+            fMenuHelper.setAccessible(true);
+            menuHelper = fMenuHelper.get(popupMenu);
+            argTypes = new Class[]{boolean.class};
+            menuHelper.getClass().getDeclaredMethod("setForceShowIcon", argTypes).invoke(menuHelper, true);
+        } catch (Exception e) {}
+
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.drawer_popup_id1:
+                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.parse("package:" + myapp.getPackagename()));
+                        startActivity(intent);
+                        return true;
+                    case R.id.drawer_popup_id2:
+                        Toast.makeText(getBaseContext(), "Item2", Toast.LENGTH_SHORT).show();
+                        return true;
+                    case R.id.drawer_popup_id3:
+                        Toast.makeText(getBaseContext(), "Item3", Toast.LENGTH_SHORT).show();
+                        return true;
+                    case R.id.drawer_popup_id4:
+                        Toast.makeText(getBaseContext(), "Item5", Toast.LENGTH_SHORT).show();
+                        return true;
+                    case R.id.drawer_popup_id5:
+                        Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
+                        Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
+                        startActivity(uninstallIntent);
+
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+        });
+        popupMenu.show();
     }
 
     @Override
@@ -447,24 +422,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean onSingleTapUp(MotionEvent event) {
         //Log.d(DEBUG_TAG, "onSingleTapUp: " + event.toString());
-        return true;
-    }
-
-    @Override
-    public boolean onDoubleTap(MotionEvent event) {
-        //Log.d(DEBUG_TAG, "onDoubleTap: " + event.toString());
-        return true;
-    }
-
-    @Override
-    public boolean onDoubleTapEvent(MotionEvent event) {
-        //Log.d(DEBUG_TAG, "onDoubleTapEvent: " + event.toString());
-        return true;
-    }
-
-    @Override
-    public boolean onSingleTapConfirmed(MotionEvent event) {
-        Log.d(DEBUG_TAG, "onSingleTapConfirmed: " + event.toString());
         return true;
     }
 
@@ -642,12 +599,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
 
 
-    }
-
-    public static Point getTouchPositionFromDragEvent(View item, DragEvent event) {
-        Rect rItem = new Rect();
-        item.getGlobalVisibleRect(rItem);
-        return new Point(rItem.left + Math.round(event.getX()), rItem.top + Math.round(event.getY()));
     }
 
     private void launchApp(String packagename) {
