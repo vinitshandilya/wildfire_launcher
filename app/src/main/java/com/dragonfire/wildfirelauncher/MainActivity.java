@@ -64,7 +64,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
-        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener {
+        GestureDetector.OnDoubleTapListener, AppLongClickListener, AppClickListener, AppDragListener {
 
     private static final String DEBUG_TAG = "Gestures";
     private GestureDetectorCompat mDetector;
@@ -88,8 +88,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     AppObject myapp;
     View longclickedview;
-
-
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -123,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         gridAdapter.setmAppClickListener(this);
         gridAdapter.setmAppLongClickListener(this);
+        gridAdapter.setmAppDragListener(this);
 
         drawerGridView.setAdapter(gridAdapter);
 
@@ -231,25 +230,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     case DragEvent.ACTION_DRAG_ENTERED:
                         Point dragentered = getTouchPositionFromDragEvent(v, event);
                         Log.d("Agent", "ACTION_DRAG_ENTERED  => " + dragentered.x + ", " + dragentered.y);
-                        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                        try {
-                            popupMenu.dismiss();
-                        }
-                        catch (Exception e) {
-                            System.out.println(e.toString());
-                        }
-                        break;
-                    case DragEvent.ACTION_DRAG_LOCATION:
-                        Point draglocation = getTouchPositionFromDragEvent(v, event);
-                        Log.d("Agent", "ACTION_DRAG_LOCATION => " + draglocation.x + ", " + draglocation.y);
+                        return true;
 
-                        break;
-                    case DragEvent.ACTION_DRAG_EXITED:
-                        Log.d(TAG, v.toString());
-                        Point dragexited = getTouchPositionFromDragEvent(v, event);
-                        Log.d("Agent", "ACTION_DRAG_EXITED  => " + dragexited.x + ", " + dragexited.y);
-
-                        break;
                     case DragEvent.ACTION_DROP:
                         //Log.d(TAG, v.toString());
                         Log.d(TAG, "ACTION_DRAG_DROP");
@@ -303,37 +285,25 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             }
                         });
 
-                        break;
+                        return true;
 
                     case DragEvent.ACTION_DRAG_ENDED:
                         Log.d(TAG, v.toString());
                         Log.d(TAG, "ACTION_DRAG_ENDED");
-                        break;
+
+                        return true;
 
                     default:
-                        break;
+                        return false;
 
                 }
-
-                return true;
             }
         });
-
-
-
-
     }
 
     @Override
     public void onAppClicked(AppObject appObject, View clickedView) {
         launchApp(appObject.getPackagename());
-    }
-
-    private void launchApp(String packagename) {
-        Intent in = getPackageManager().getLaunchIntentForPackage(packagename);
-        if(in !=null) {
-            startActivity(in);
-        }
     }
 
     @Override
@@ -389,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         popupMenu.show();
 
         // Drag code here inside applongclick
-        ClipData.Item item = new ClipData.Item(appObject.getAppname()+"~"+appObject.getPackagename()+"~"+appObject.getAppicon());
+        /*ClipData.Item item = new ClipData.Item(appObject.getAppname()+"~"+appObject.getPackagename()+"~"+appObject.getAppicon());
         ClipData dragData = new ClipData(
                 (CharSequence) clickedView.getTag(),
                 new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
@@ -398,7 +368,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 new View.DragShadowBuilder(clickedView),  // the drag shadow builder
                 null,      // no need to use local data
                 0          // flags (not currently used, set to 0)
-        );
+        );*/
     }
 
     // Gesture intercept
@@ -424,7 +394,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
-        Log.d("Agent", "onFling: " + event1.toString() + event2.toString());
+        //Log.d("Agent", "onFling: " + event1.toString() + event2.toString());
 
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
@@ -451,7 +421,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onLongPress(MotionEvent event) {
-        Log.d("Agent", "ON LONG PRESSED. (Xlong, Ylong) => " + event.getX() + ", " + event.getY());
+        //Log.d("Agent", "ON LONG PRESSED. (Xlong, Ylong) => " + event.getX() + ", " + event.getY());
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
@@ -471,7 +441,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onShowPress(MotionEvent event) {
-        Log.d("Agent", "onShowPress: " + event.toString());
+        //Log.d("Agent", "onShowPress: " + event.toString());
     }
 
     @Override
@@ -501,7 +471,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) { // Otherwise the touch and fling won't work together
         super.dispatchTouchEvent(ev);
-        Log.d("Agent", "Dispatch touch event (X, Y) => " + ev.getX() + ", " + ev.getY());
         return mDetector.onTouchEvent(ev);
     }
 
@@ -588,6 +557,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         homescreen.addView(hostView, params);
     }
 
+    @Override
+    public void onAppDragged(AppObject appObject, View clickedView) {
+        myapp = appObject;
+        Toast.makeText(getBaseContext(), "App is dragged inside main", Toast.LENGTH_SHORT).show();
+        try{
+            popupMenu.dismiss();
+        } catch(Exception e) {
+            System.out.println(e.toString());
+        }
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+    }
+
     public class PackageListener extends BroadcastReceiver { // need to fix
 
         @Override
@@ -666,5 +648,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         Rect rItem = new Rect();
         item.getGlobalVisibleRect(rItem);
         return new Point(rItem.left + Math.round(event.getX()), rItem.top + Math.round(event.getY()));
+    }
+
+    private void launchApp(String packagename) {
+        Intent in = getPackageManager().getLaunchIntentForPackage(packagename);
+        if(in !=null) {
+            startActivity(in);
+        }
     }
 }
