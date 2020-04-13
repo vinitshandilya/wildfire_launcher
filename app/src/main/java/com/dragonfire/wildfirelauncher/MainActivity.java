@@ -314,8 +314,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
-        //Log.d("Agent", "onFling: " + event1.toString() + event2.toString());
-
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
