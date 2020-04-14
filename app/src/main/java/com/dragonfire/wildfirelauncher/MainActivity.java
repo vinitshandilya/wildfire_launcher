@@ -7,6 +7,7 @@ import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.palette.graphics.Palette;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
@@ -22,10 +23,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -76,7 +80,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private GridView drawerGridView;
     private EditText searchbar;
     private PackageListener mPackageListener;
-    private PopupMenu popupMenu;
+    //private PopupMenu popupMenu;
+    PopupWindow popupWindow;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -350,17 +355,27 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onLongPress(MotionEvent event) {
-        //Toast.makeText(getBaseContext(), "OnLongPressed " + myapp.getAppname(), Toast.LENGTH_SHORT).show();
         Vibrator vb = (Vibrator)   getSystemService(Context.VIBRATOR_SERVICE);
         vb.vibrate(30);
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
         // Else if an app is clicked
+        Bitmap bitmap = ((BitmapDrawable) myapp.getAppicon()).getBitmap();
+        Palette p = Palette.from(bitmap).generate();
+        String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
+        //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
+        String popupTextColor = "#FFFFFF";
+        popupWindow = setPopupWindow(popupBg, popupTextColor);
+        popupWindow.showAsDropDown(longclickedview);
 
-        popupMenu = new PopupMenu(getBaseContext(), longclickedview);
+
+
+
+        /*popupMenu = new PopupMenu(getBaseContext(), longclickedview);
         popupMenu.inflate(R.menu.drawer_popup);
 
         Log.d(TAG, "Long clicked on: " + myapp.getAppname());
@@ -405,18 +420,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }
         });
-        popupMenu.show();
+        popupMenu.show();*/
     }
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
         //Log.d("Agent", "onScroll: " + event1.toString() + event2.toString());
         hideKeypad();
-        try{
-            popupMenu.dismiss();
-        } catch(Exception e) {
-
-        }
+        try {
+            popupWindow.dismiss();
+        } catch (Exception e) {}
         return true;
     }
 
@@ -523,12 +536,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppDragged(AppObject appObject, View clickedView) {
         myapp = appObject;
+        try {
+            popupWindow.dismiss();
+        } catch (Exception e) {}
         //Toast.makeText(getBaseContext(), "App is dragged inside main", Toast.LENGTH_SHORT).show();
-        try{
+        /*try{
             popupMenu.dismiss();
         } catch(Exception e) {
             System.out.println(e.toString());
-        }
+        }*/
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
     }
@@ -612,6 +628,63 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(in !=null) {
             startActivity(in);
         }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public PopupWindow setPopupWindow(String bgcolor, String textColor) {
+        final PopupWindow popupWindow = new PopupWindow();
+        LayoutInflater inflater = (LayoutInflater)
+                getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        View view = inflater.inflate(R.layout.popup_layout, null);
+        view.getBackground().setColorFilter(Color.parseColor(bgcolor), PorterDuff.Mode.SRC_ATOP);
+
+        view.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        int measuredHeight = view.getMeasuredHeight();
+        int measuredWidth = view.getMeasuredWidth();
+
+        TextView info = (TextView)view.findViewById(R.id.popup_appinfo);
+        TextView edit = (TextView)view.findViewById(R.id.popup_edit);
+        TextView hide = (TextView)view.findViewById(R.id.popup_hide);
+        TextView lock = (TextView)view.findViewById(R.id.popup_lock);
+        TextView uninstall = (TextView)view.findViewById(R.id.popup_uninstall);
+
+        info.setTextColor(Color.parseColor(textColor));
+        edit.setTextColor(Color.parseColor(textColor));
+        hide.setTextColor(Color.parseColor(textColor));
+        lock.setTextColor(Color.parseColor(textColor));
+        uninstall.setTextColor(Color.parseColor(textColor));
+
+        popupWindow.setFocusable(true);
+        popupWindow.setWidth(measuredWidth);
+        popupWindow.setHeight(measuredHeight);
+        popupWindow.setElevation(30.f);
+        popupWindow.setClippingEnabled(false);
+        //popupWindow.setOverlapAnchor(true);
+        popupWindow.setTouchable(true);
+        popupWindow.setContentView(view);
+
+        info.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + myapp.getPackagename()));
+                startActivity(intent);
+                popupWindow.dismiss();
+            }
+        });
+        uninstall.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
+                Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
+                startActivity(uninstallIntent);
+                popupWindow.dismiss();
+            }
+        });
+
+        return popupWindow;
+
     }
 
 }

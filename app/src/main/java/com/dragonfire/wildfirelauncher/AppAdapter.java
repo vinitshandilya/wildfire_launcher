@@ -87,12 +87,6 @@ public class AppAdapter extends BaseAdapter {
         icon.setImageDrawable(appObjectList.get(position).getAppicon());
         appname.setText(appObjectList.get(position).getAppname());
 
-        Bitmap bitmap = ((BitmapDrawable) appObjectList.get(position).getAppicon()).getBitmap();
-        Palette p = Palette.from(bitmap).generate();
-        String hexColor = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.WHITE)));
-
-        Log.d("COLOR", appObjectList.get(position).getAppname() + " dominant color: " + hexColor);
-
         v.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent ev) {
