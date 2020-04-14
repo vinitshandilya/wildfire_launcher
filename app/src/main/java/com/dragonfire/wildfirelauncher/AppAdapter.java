@@ -3,6 +3,7 @@ package com.dragonfire.wildfirelauncher;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
+import android.graphics.Color;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -22,15 +23,10 @@ public class AppAdapter extends BaseAdapter {
     private Context context;
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
-    private AppLongClickListener mAppLongClickListener;
     private AppActionDownListener mAppActionDownListener;
     private AppDragListener mAppDragListener;
     private long t1=0, t2=0;
     private GestureDetectorCompat mDetector;
-
-    void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
-        this.mAppLongClickListener = mAppLongClickListener;
-    }
 
     void setmAppActionDownListener(AppActionDownListener mAppActionDownListener) {
         this.mAppActionDownListener = mAppActionDownListener;
@@ -85,8 +81,10 @@ public class AppAdapter extends BaseAdapter {
         v.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent ev) {
+                //ImageView icon = v.findViewById(R.id.appicondrawable);
                 switch (ev.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
+                        //icon.setColorFilter(Color.argb(80, 0, 0, 0));
                         if(mAppActionDownListener != null) {
                             mAppActionDownListener.onAppActionDown(appObjectList.get(position), v);
                         }
@@ -98,24 +96,16 @@ public class AppAdapter extends BaseAdapter {
                         Log.d("COOK", "ACTION_UP: " + ev.getX() + ", " + ev.getY());
                         t2 = System.currentTimeMillis();
                         if(Math.abs(t2-t1) <=300) {
-                            Toast.makeText(context, "Click event", Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(context, "Click event", Toast.LENGTH_SHORT).show();
                             if(mAppClickListener!=null) {
                                 mAppClickListener.onAppClicked(appObjectList.get(position), v);
                             }
                         }
-                        else if(Math.abs(t2-t1) > 300) {
-                            //Toast.makeText(context, "Long click event", Toast.LENGTH_SHORT).show();
-                            /*if(mAppLongClickListener!=null) {
-                                mAppLongClickListener.onAppLongClicked(appObjectList.get(position), v);
-                                return true;
-                            }
-                            else return false;*/
-                        }
+
                         return false;
 
                     case MotionEvent.ACTION_MOVE:
                         Log.d("COOK", "ACTION_MOVE: " + ev.getX() + ", " + ev.getY());
-
                         ClipData.Item item = new ClipData.Item(appObjectList.get(position).getAppname()+"~"+appObjectList.get(position).getPackagename()+"~"+appObjectList.get(position).getAppicon());
                         ClipData dragData = new ClipData(
                                 (CharSequence) v.getTag(),

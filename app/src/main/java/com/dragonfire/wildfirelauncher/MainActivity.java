@@ -31,6 +31,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
@@ -346,7 +347,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onLongPress(MotionEvent event) {
-        Toast.makeText(getBaseContext(), "OnLongPressed " + myapp.getAppname(), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(getBaseContext(), "OnLongPressed " + myapp.getAppname(), Toast.LENGTH_SHORT).show();
+        Vibrator vb = (Vibrator)   getSystemService(Context.VIBRATOR_SERVICE);
+        vb.vibrate(50);
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
@@ -515,7 +518,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppDragged(AppObject appObject, View clickedView) {
         myapp = appObject;
-        Toast.makeText(getBaseContext(), "App is dragged inside main", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(getBaseContext(), "App is dragged inside main", Toast.LENGTH_SHORT).show();
         try{
             popupMenu.dismiss();
         } catch(Exception e) {
