@@ -51,6 +51,7 @@ import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -237,20 +238,24 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         int cursor_x = (int) event.getX();
                         int cursor_y = (int) event.getY();
 
+                        appicon.measure(0, 0);
+                        int icon_width = appicon.getMeasuredWidth();
+                        int icon_height = appicon.getMeasuredHeight();
+
+                        int dw=10;
+                        int dh=10;
+
                         int snap_row = Math.round(cursor_y/(H/6));
-                        int snap_col = Math.round(cursor_x/(H/6));
+                        int snap_col = Math.round(cursor_x/(W/6));
 
                         Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
                         Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
                         Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
 
                         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
-                        appicon.measure(0, 0);
-                        int icon_width = appicon.getMeasuredWidth();
-                        int icon_height = appicon.getMeasuredHeight();
                         Log.d(TAG, "Vinit icon width " + icon_width);
                         params.topMargin = snap_row * (H/6);
-                        params.leftMargin = snap_col * (H/6);
+                        params.leftMargin = snap_col * (W/6);
                         homescreen.addView(appicon, params);
 
                         // Add label
@@ -264,7 +269,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         int label_height = label.getMeasuredHeight(); //get height
                         int label_width = label.getMeasuredWidth();  //get width
                         labelparams.topMargin = snap_row * (H/6) + 125;
-                        labelparams.leftMargin = snap_col * (H/6) + 60 - (label_width/2);
+                        labelparams.leftMargin = snap_col * (W/6) + 60 - (label_width/2);
                         homescreen.addView(label, labelparams);
 
                         ClipData.Item item = event.getClipData().getItemAt(0);
@@ -349,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onLongPress(MotionEvent event) {
         //Toast.makeText(getBaseContext(), "OnLongPressed " + myapp.getAppname(), Toast.LENGTH_SHORT).show();
         Vibrator vb = (Vibrator)   getSystemService(Context.VIBRATOR_SERVICE);
-        vb.vibrate(50);
+        vb.vibrate(30);
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
@@ -608,4 +613,5 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             startActivity(in);
         }
     }
+
 }

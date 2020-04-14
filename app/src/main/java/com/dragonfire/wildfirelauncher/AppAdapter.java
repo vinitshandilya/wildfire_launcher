@@ -3,20 +3,24 @@ package com.dragonfire.wildfirelauncher;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.List;
 
 import androidx.core.view.GestureDetectorCompat;
+import androidx.palette.graphics.Palette;
 
 public class AppAdapter extends BaseAdapter {
 
@@ -75,8 +79,19 @@ public class AppAdapter extends BaseAdapter {
         ImageView icon = v.findViewById(R.id.appicondrawable);
         TextView appname = v.findViewById(R.id.appname);
 
+        /*Glide.with(context)
+                .load(appObjectList.get(position).getAppicon())
+                .apply(RequestOptions.circleCropTransform())
+                .into(icon);*/
+
         icon.setImageDrawable(appObjectList.get(position).getAppicon());
         appname.setText(appObjectList.get(position).getAppname());
+
+        Bitmap bitmap = ((BitmapDrawable) appObjectList.get(position).getAppicon()).getBitmap();
+        Palette p = Palette.from(bitmap).generate();
+        String hexColor = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.WHITE)));
+
+        Log.d("COLOR", appObjectList.get(position).getAppname() + " dominant color: " + hexColor);
 
         v.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -85,6 +100,7 @@ public class AppAdapter extends BaseAdapter {
                 switch (ev.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
                         //icon.setColorFilter(Color.argb(80, 0, 0, 0));
+                        v.setPressed(true);
                         if(mAppActionDownListener != null) {
                             mAppActionDownListener.onAppActionDown(appObjectList.get(position), v);
                         }
@@ -93,18 +109,20 @@ public class AppAdapter extends BaseAdapter {
                         return true;
 
                     case MotionEvent.ACTION_UP:
+                        v.setPressed(false);
                         Log.d("COOK", "ACTION_UP: " + ev.getX() + ", " + ev.getY());
                         t2 = System.currentTimeMillis();
-                        if(Math.abs(t2-t1) <=300) {
+                        if(Math.abs(t2-t1) < ViewConfiguration.getLongPressTimeout()) {
                             //Toast.makeText(context, "Click event", Toast.LENGTH_SHORT).show();
                             if(mAppClickListener!=null) {
                                 mAppClickListener.onAppClicked(appObjectList.get(position), v);
                             }
                         }
 
-                        return false;
+                        return true;
 
                     case MotionEvent.ACTION_MOVE:
+                        v.setPressed(false);
                         Log.d("COOK", "ACTION_MOVE: " + ev.getX() + ", " + ev.getY());
                         ClipData.Item item = new ClipData.Item(appObjectList.get(position).getAppname()+"~"+appObjectList.get(position).getPackagename()+"~"+appObjectList.get(position).getAppicon());
                         ClipData dragData = new ClipData(
