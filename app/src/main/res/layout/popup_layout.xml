@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/popupcontainer"
-    android:layout_width="wrap_content"
+    android:layout_width="200dp"
     android:layout_height="wrap_content"
     android:background="@drawable/popup_shape_bg"
     android:orientation="vertical">
 
     <TextView
         android:id="@+id/popup_appinfo"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="8dp"
         android:drawableLeft="@android:drawable/ic_menu_info_details"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
@@ -20,12 +21,13 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#ffffff" />
+        android:background="#80ffffff" />
 
     <TextView
         android:id="@+id/popup_edit"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="8dp"
         android:drawableLeft="@android:drawable/ic_menu_edit"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
@@ -36,12 +38,13 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#ffffff" />
+        android:background="#80ffffff" />
 
     <TextView
         android:id="@+id/popup_hide"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="8dp"
         android:drawableLeft="@android:drawable/ic_menu_view"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
@@ -52,12 +55,13 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#ffffff" />
+        android:background="#80ffffff" />
 
     <TextView
         android:id="@+id/popup_lock"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="8dp"
         android:drawableLeft="@android:drawable/ic_menu_agenda"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
@@ -68,12 +72,13 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#ffffff" />
+        android:background="#80ffffff" />
 
     <TextView
         android:id="@+id/popup_uninstall"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:padding="8dp"
         android:drawableLeft="@android:drawable/ic_menu_delete"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"

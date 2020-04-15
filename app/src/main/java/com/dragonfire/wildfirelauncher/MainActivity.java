@@ -69,7 +69,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, AppClickListener, AppDragListener, AppActionDownListener {
+public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, AppClickListener, AppDragListener,
+        AppActionDownListener {
 
     private GestureDetectorCompat mDetector;
     private BottomSheetBehavior mBottomSheetBehavior;
@@ -80,8 +81,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private GridView drawerGridView;
     private EditText searchbar;
     private PackageListener mPackageListener;
-    //private PopupMenu popupMenu;
-    PopupWindow popupWindow;
+    private PopupWindow popupWindow;
+    private View bottomSheet;
+    private boolean dragging;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -92,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     AppObject myapp;
     View longclickedview;
+    boolean longclicked;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -104,16 +107,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         screenHight = displaymetrics.heightPixels;
         screenWidth = displaymetrics.widthPixels;
 
-        // Instantiate a ViewPager2 and a PagerAdapter.
         viewPager = findViewById(R.id.pager);
         FragmentStateAdapter pagerAdapter = new ScreenSlidePagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
 
         mDetector = new GestureDetectorCompat(this,this);
 
-        View bottomSheet = findViewById(R.id.bottom_sheet);
+        bottomSheet = findViewById(R.id.bottom_sheet);
         mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        mBottomSheetBehavior.setHideable(false);
+        mBottomSheetBehavior.setHideable(true);
 
         drawerGridView = findViewById(R.id.grid);
 
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 currentDrawerState = newState;
                 if(newState == BottomSheetBehavior.STATE_HIDDEN && drawerGridView.getChildAt(0).getY()!=0) {
-                    mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                    //mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
                 if(newState == BottomSheetBehavior.STATE_DRAGGING && drawerGridView.getChildAt(0).getY()!=0) {
                     mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -156,21 +158,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                //Log.d("slideoffset", slideOffset + "");
+                int alpha = (int) (255*slideOffset);
+                bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
                 }
                 if(!drawerExpanded) {
-
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                                     | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR); // DARK STATUS ICONS.
                 }
-
-
             }
         });
 
@@ -247,20 +247,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         int icon_width = appicon.getMeasuredWidth();
                         int icon_height = appicon.getMeasuredHeight();
 
-                        int dw=10;
-                        int dh=10;
-
                         int snap_row = Math.round(cursor_y/(H/6));
-                        int snap_col = Math.round(cursor_x/(W/6));
+                        int snap_col = Math.round(cursor_x/(W/5));
 
                         Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
                         Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
+                        Log.d(TAG, "Vinit icon width " + icon_width);
+                        Log.d(TAG, "Vinit icon height " + icon_height);
                         Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
+                        Log.d(TAG, "Vinit ==========================================================");
 
                         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
-                        Log.d(TAG, "Vinit icon width " + icon_width);
                         params.topMargin = snap_row * (H/6);
-                        params.leftMargin = snap_col * (W/6);
+                        params.leftMargin = snap_col * (W/5);
                         homescreen.addView(appicon, params);
 
                         // Add label
@@ -274,7 +273,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         int label_height = label.getMeasuredHeight(); //get height
                         int label_width = label.getMeasuredWidth();  //get width
                         labelparams.topMargin = snap_row * (H/6) + 125;
-                        labelparams.leftMargin = snap_col * (W/6) + 60 - (label_width/2);
+                        labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
                         homescreen.addView(label, labelparams);
 
                         ClipData.Item item = event.getClipData().getItemAt(0);
@@ -287,6 +286,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 launchApp(app[1]); // launch app from package name
                             }
                         });
+                        dragging = false;
 
                         return true;
 
@@ -358,78 +358,52 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onLongPress(MotionEvent event) {
-        Vibrator vb = (Vibrator)   getSystemService(Context.VIBRATOR_SERVICE);
+        Vibrator vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         vb.vibrate(30);
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
             selectWidget();
         }
         // Else if an app is clicked
-        Bitmap bitmap = ((BitmapDrawable) myapp.getAppicon()).getBitmap();
-        Palette p = Palette.from(bitmap).generate();
-        String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
-        //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
-        String popupTextColor = "#FFFFFF";
-        popupWindow = setPopupWindow(popupBg, popupTextColor);
-        popupWindow.showAsDropDown(longclickedview);
-
-
-
-
-        /*popupMenu = new PopupMenu(getBaseContext(), longclickedview);
-        popupMenu.inflate(R.menu.drawer_popup);
-
-        Log.d(TAG, "Long clicked on: " + myapp.getAppname());
-
-        Object menuHelper;
-        Class[] argTypes;
-        try {
-            Field fMenuHelper = PopupMenu.class.getDeclaredField("mPopup");
-            fMenuHelper.setAccessible(true);
-            menuHelper = fMenuHelper.get(popupMenu);
-            argTypes = new Class[]{boolean.class};
-            menuHelper.getClass().getDeclaredMethod("setForceShowIcon", argTypes).invoke(menuHelper, true);
-        } catch (Exception e) {}
-
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                switch (item.getItemId()) {
-                    case R.id.drawer_popup_id1:
-                        Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                        intent.setData(Uri.parse("package:" + myapp.getPackagename()));
-                        startActivity(intent);
-                        return true;
-                    case R.id.drawer_popup_id2:
-                        Toast.makeText(getBaseContext(), "Item2", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.drawer_popup_id3:
-                        Toast.makeText(getBaseContext(), "Item3", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.drawer_popup_id4:
-                        Toast.makeText(getBaseContext(), "Item5", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.drawer_popup_id5:
-                        Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
-                        Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
-                        startActivity(uninstallIntent);
-
-                        return true;
-
-                    default:
-                        return false;
-                }
-            }
-        });
-        popupMenu.show();*/
+        else {
+            Bitmap bitmap = ((BitmapDrawable) myapp.getAppicon()).getBitmap();
+            Palette p = Palette.from(bitmap).generate();
+            String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
+            //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
+            String popupTextColor = "#FFFFFF";
+            popupWindow = setPopupWindow(popupBg, popupTextColor);
+            popupWindow.showAsDropDown(longclickedview);
+        }
+        longclicked = true;
     }
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
-        //Log.d("Agent", "onScroll: " + event1.toString() + event2.toString());
-        hideKeypad();
-        try {
-            popupWindow.dismiss();
-        } catch (Exception e) {}
+        Log.d("Cook", "Scrolled");
+        int peek = (int) (screenHight - event2.getY());
+        if(drawerExpanded) {
+            hideKeypad();
+            try {
+                popupWindow.dismiss();
+            } catch (Exception e) {}
+            longclicked = false;
+
+            if(event1.getY() <= event2.getY()) { // down scroll when drawer is expanded
+                if(peek<screenHight/2)
+                    peek=0;
+                Log.d("Cook", "Scroll DN: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
+                mBottomSheetBehavior.setPeekHeight(peek);
+                if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED)
+                    drawerExpanded = false;
+            }
+        }
+        else {
+            if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
+                Log.d("Cook", "Scroll UP: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
+                mBottomSheetBehavior.setPeekHeight(peek);
+                if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
+                    drawerExpanded = true;
+            }
+        }
         return true;
     }
 
@@ -539,14 +513,22 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         try {
             popupWindow.dismiss();
         } catch (Exception e) {}
-        //Toast.makeText(getBaseContext(), "App is dragged inside main", Toast.LENGTH_SHORT).show();
-        /*try{
-            popupMenu.dismiss();
-        } catch(Exception e) {
-            System.out.println(e.toString());
-        }*/
-        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
+        if(longclicked) {
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            ClipData.Item item = new ClipData.Item(myapp.getAppname()+"~"+myapp.getPackagename()+"~"+myapp.getAppicon());
+            ClipData dragData = new ClipData(
+                    (CharSequence) longclickedview.getTag(),
+                    new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                    item);
+            longclickedview.findViewById(R.id.appicondrawable).startDrag(dragData,  // the data to be dragged
+                    new View.DragShadowBuilder(longclickedview.findViewById(R.id.appicondrawable)),  // the drag shadow builder
+                    null,      // no need to use local data
+                    0          // flags (not currently used, set to 0)
+            );
+            longclicked = false;
+        }
     }
 
     public class PackageListener extends BroadcastReceiver { // need to fix
