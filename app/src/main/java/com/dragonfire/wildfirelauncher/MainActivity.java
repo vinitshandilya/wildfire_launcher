@@ -158,8 +158,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                int alpha = (int) (255*slideOffset);
-                bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));
+                /*int alpha = (int) (255*slideOffset);
+                Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
+                bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));*/
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -327,6 +328,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                bottomSheet.setBackgroundColor(Color.WHITE);
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
 
@@ -378,7 +380,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
-        Log.d("Cook", "Scrolled");
         int peek = (int) (screenHight - event2.getY());
         if(drawerExpanded) {
             hideKeypad();
@@ -390,16 +391,25 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             if(event1.getY() <= event2.getY()) { // down scroll when drawer is expanded
                 if(peek<screenHight/2)
                     peek=0;
-                Log.d("Cook", "Scroll DN: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
+                //Log.d("Cook", "Scroll DN: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
                 mBottomSheetBehavior.setPeekHeight(peek);
+                /*double ratio = (double)peek/screenHight;
+                double alpha = 255 * ratio;
+                Log.d("Cook", "Alpha: " + alpha + " peek: " + peek + " Screenheight: " + screenHight + " peek/screenheight: " + ratio);
+                bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));*/
                 if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED)
                     drawerExpanded = false;
             }
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                Log.d("Cook", "Scroll UP: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
+                //Log.d("Cook", "Scroll UP: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
                 mBottomSheetBehavior.setPeekHeight(peek);
+                double ratio = (double)peek/screenHight;
+                double alpha = 255 * ratio;
+                Log.d("Cook", "Alpha: " + alpha + " peek: " + peek + " Screenheight: " + screenHight + " peek/screenheight: " + ratio);
+                bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+
                 if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
                     drawerExpanded = true;
             }

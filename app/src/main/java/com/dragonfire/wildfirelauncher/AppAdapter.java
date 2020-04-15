@@ -82,17 +82,17 @@ public class AppAdapter extends BaseAdapter {
             public boolean onTouch(View v, MotionEvent ev) {
                 switch (ev.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
+                        Log.d("Cook", "Action down: " + ev.getAction());
                         v.setPressed(true);
                         if(mAppActionDownListener != null) {
                             mAppActionDownListener.onAppActionDown(appObjectList.get(position), v);
                         }
-                        Log.d("COOK", "ACTION_DOWN: " + ev.getX() + ", " + ev.getY());
                         t1 = System.currentTimeMillis();
                         return true;
 
                     case MotionEvent.ACTION_UP:
+                        Log.d("Cook", "Action up: " + ev.getAction());
                         v.setPressed(false);
-                        Log.d("COOK", "ACTION_UP: " + ev.getX() + ", " + ev.getY());
                         t2 = System.currentTimeMillis();
                         if(Math.abs(t2-t1) < ViewConfiguration.getLongPressTimeout()) {
                             if(mAppClickListener!=null) {
@@ -104,18 +104,7 @@ public class AppAdapter extends BaseAdapter {
 
                     case MotionEvent.ACTION_MOVE:
                         v.setPressed(false);
-                        Log.d("COOK", "ACTION_MOVE: " + ev.getX() + ", " + ev.getY());
-                        /*ClipData.Item item = new ClipData.Item(appObjectList.get(position).getAppname()+"~"+appObjectList.get(position).getPackagename()+"~"+appObjectList.get(position).getAppicon());
-                        ClipData dragData = new ClipData(
-                                (CharSequence) v.getTag(),
-                                new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                                item);
-                        v.findViewById(R.id.appicondrawable).startDrag(dragData,  // the data to be dragged
-                                new View.DragShadowBuilder(v.findViewById(R.id.appicondrawable)),  // the drag shadow builder
-                                null,      // no need to use local data
-                                0          // flags (not currently used, set to 0)
-                        );*/
-
+                        Log.d("Cook", "Action move: " + ev.getAction());
                         if(mAppDragListener!=null) {
                             mAppDragListener.onAppDragged(appObjectList.get(position), v);
                         }
