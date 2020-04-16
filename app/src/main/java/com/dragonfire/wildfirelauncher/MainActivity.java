@@ -83,7 +83,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private PackageListener mPackageListener;
     private PopupWindow popupWindow;
     private View bottomSheet;
-    private boolean dragging;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -190,7 +189,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 gridAdapter = new AppAdapter(getBaseContext(), filteredApps);
                 drawerGridView.setAdapter(gridAdapter);
                 gridAdapter.setmAppClickListener(MainActivity.this);
+                gridAdapter.setmAppDragListener(MainActivity.this);
                 gridAdapter.setmAppActionDownListener(MainActivity.this);
+
                 for(AppObject currentApp : installedAppList) {
                     if(currentApp.getAppname().toLowerCase().contains(s.toString().toLowerCase())) {
                         Log.d("Wildfire", currentApp.getAppname());
@@ -287,7 +288,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 launchApp(app[1]); // launch app from package name
                             }
                         });
-                        dragging = false;
 
                         return true;
 
@@ -527,6 +527,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(longclicked) {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            hideKeypad();
+            //searchbar.setText("");
             ClipData.Item item = new ClipData.Item(myapp.getAppname()+"~"+myapp.getPackagename()+"~"+myapp.getAppicon());
             ClipData dragData = new ClipData(
                     (CharSequence) longclickedview.getTag(),
@@ -584,7 +586,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onBackPressed() {
         if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            searchbar.setText("");
         }
         if (viewPager.getCurrentItem() == 0) {
             // If the user is currently looking at the first step, allow the system to handle the

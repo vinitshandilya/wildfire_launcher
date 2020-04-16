@@ -1,7 +1,5 @@
 package com.dragonfire.wildfirelauncher;
 
-import android.content.ClipData;
-import android.content.ClipDescription;
 import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,8 +13,6 @@ import android.widget.TextView;
 
 import java.util.List;
 
-import androidx.core.view.GestureDetectorCompat;
-
 public class AppAdapter extends BaseAdapter {
 
     private Context context;
@@ -25,7 +21,6 @@ public class AppAdapter extends BaseAdapter {
     private AppActionDownListener mAppActionDownListener;
     private AppDragListener mAppDragListener;
     private long t1=0, t2=0;
-    private GestureDetectorCompat mDetector;
 
     void setmAppActionDownListener(AppActionDownListener mAppActionDownListener) {
         this.mAppActionDownListener = mAppActionDownListener;
@@ -108,10 +103,10 @@ public class AppAdapter extends BaseAdapter {
                         if(mAppDragListener!=null) {
                             mAppDragListener.onAppDragged(appObjectList.get(position), v);
                         }
-
                         return true;
 
                     default:
+                        v.setPressed(false);
                         return false;
 
                 }
