@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.app.WallpaperManager;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
@@ -61,13 +62,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.kc.unsplash.Unsplash;
+import com.kc.unsplash.api.Order;
+import com.kc.unsplash.models.Photo;
+import com.kc.unsplash.models.SearchResults;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, AppClickListener, AppDragListener,
         AppActionDownListener {
@@ -303,6 +312,61 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }
         });
+
+        ImageView changeWallpaper = findViewById(R.id.changewallpaper);
+        final Unsplash unsplash = new Unsplash("m7_7e-ldwcFyQ1SkbFJcNNFwE8TkIVWe1itmKvV3yrs");
+
+        changeWallpaper.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                /*unsplash.searchPhotos("HD landscapes mobile", new Unsplash.OnSearchCompleteListener() {
+                    @Override
+                    public void onComplete(SearchResults results) {
+                        Log.d("unsplash", "Total Results Found " + results.getTotal());
+                        List<Photo> photos = results.getResults();
+                        int index = (new Random()).nextInt(10);
+                        setWallpaper(photos.get(index).getUrls().getRegular());
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.d("unsplash", error);
+                    }
+                });*/
+
+                /*unsplash.getRandomPhotos(null, true, null, null,
+                        null, null, Unsplash.ORIENTATION_PORTRAIT, 10, new Unsplash.OnPhotosLoadedListener() {
+                            @Override
+                            public void onComplete(List<Photo> photos) {
+                                for(Photo photo : photos) {
+                                    Log.d("unsplash:random photos ", photo.getUrls().getRegular());
+                                }
+                                int index = (new Random()).nextInt(10);
+                                setWallpaper(photos.get(index).getUrls().getRegular());
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                Log.d("unsplash", error);
+                            }
+                        });*/
+                unsplash.searchPhotos("HD landscapes mobile", 1, 20, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
+                    @Override
+                    public void onComplete(SearchResults results) {
+                        Log.d("unsplash", "Total Results Found " + results.getTotal());
+                        List<Photo> photos = results.getResults();
+                        int index = (new Random()).nextInt(19);
+                        setWallpaper(photos.get(index).getUrls().getRegular());
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.d("unsplash", error);
+                    }
+                });
+
+            }
+        });
     }
 
     @Override
@@ -367,7 +431,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         // Else if an app is clicked
         else {
-            Bitmap bitmap = ((BitmapDrawable) myapp.getAppicon()).getBitmap();
+            Bitmap bitmap = getBitmapFromDrawable(myapp.getAppicon());
             Palette p = Palette.from(bitmap).generate();
             String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
             //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
@@ -680,6 +744,45 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         return popupWindow;
 
+    }
+
+    private void setWallpaper(String url) {
+        Picasso.with(getBaseContext()).load(url).into(new Target() {
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+                Log.d("Wallpaper", "Getting ready to get the image");
+                Toast.makeText(getBaseContext(), "Downloading wallpaper", Toast.LENGTH_SHORT).show();
+                //Here you should place a loading gif in the ImageView
+                //while image is being obtained.
+            }
+
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                Log.d("Wallpaper", "The image was obtained correctly");
+                Toast.makeText(getBaseContext(), "Wallpaper set", Toast.LENGTH_SHORT).show();
+                WallpaperManager wallpaperManager = WallpaperManager.getInstance(getBaseContext());
+                try {
+                    wallpaperManager.setBitmap(bitmap);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+                Log.d("Wallpaper", "The image was not obtained");
+                Toast.makeText(getBaseContext(), "Download failed", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @NonNull
+    private Bitmap getBitmapFromDrawable(@NonNull Drawable drawable) {
+        final Bitmap bmp = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        final Canvas canvas = new Canvas(bmp);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+        return bmp;
     }
 
 }

@@ -23,7 +23,21 @@
             android:layout_height="match_parent"
             android:layout_margin="20dp"
             android:layout_below="@+id/pager"
-            android:layout_gravity="center" />
+            android:layout_gravity="center" >
+
+            <ImageView
+                android:id="@+id/changewallpaper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_edit"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="30dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:contentDescription="TODO" />
+
+        </RelativeLayout>
 
     </RelativeLayout>
 
