@@ -3,6 +3,7 @@ package com.dragonfire.wildfirelauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.Fragment;
@@ -166,6 +167,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                /*int alpha = (int) (255*slideOffset);
+                Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
+                bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));*/
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -317,52 +321,30 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         ImageView changeWallpaper = findViewById(R.id.changewallpaper);
         final Unsplash unsplash = new Unsplash("m7_7e-ldwcFyQ1SkbFJcNNFwE8TkIVWe1itmKvV3yrs");
 
+        final String[] categories = {"nature", "wildlife", "starry sky", "landscapes", "sexy", "monuments",
+        "natural history", "abstract", "amoled", "dark", "neon", "sensual", "lighthouse", "astronomy", "high quality",
+        "buildings", "Lingerie", "Summer", "airplanes", "moon", "cute", "dogs", "cats",
+                "gods", "marvel", "bikini", "sports", "india", "hawaii", "winter", "Christmas", "couple", "love",
+                "sweden", "europe", "fashion", "kiss", "romance",
+                "funny", "quotes", "humor"};
+
         changeWallpaper.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /*unsplash.searchPhotos("HD landscapes mobile", new Unsplash.OnSearchCompleteListener() {
+                final int cat_index = (new Random()).nextInt(categories.length - 1);
+                unsplash.searchPhotos(categories[cat_index], 1, 10, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
                     @Override
                     public void onComplete(SearchResults results) {
-                        Log.d("unsplash", "Total Results Found " + results.getTotal());
                         List<Photo> photos = results.getResults();
-                        int index = (new Random()).nextInt(10);
+                        int index = (new Random()).nextInt(photos.size()-1);
+                        Log.d("unsplash", "category: " + categories[cat_index] + ", photo number: " + index);
                         setWallpaper(photos.get(index).getUrls().getRegular());
                     }
 
                     @Override
                     public void onError(String error) {
                         Log.d("unsplash", error);
-                    }
-                });*/
-
-                /*unsplash.getRandomPhotos(null, true, null, null,
-                        null, null, Unsplash.ORIENTATION_PORTRAIT, 10, new Unsplash.OnPhotosLoadedListener() {
-                            @Override
-                            public void onComplete(List<Photo> photos) {
-                                for(Photo photo : photos) {
-                                    Log.d("unsplash:random photos ", photo.getUrls().getRegular());
-                                }
-                                int index = (new Random()).nextInt(10);
-                                setWallpaper(photos.get(index).getUrls().getRegular());
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                Log.d("unsplash", error);
-                            }
-                        });*/
-                unsplash.searchPhotos("HD landscapes mobile", 1, 20, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
-                    @Override
-                    public void onComplete(SearchResults results) {
-                        Log.d("unsplash", "Total Results Found " + results.getTotal());
-                        List<Photo> photos = results.getResults();
-                        int index = (new Random()).nextInt(19);
-                        setWallpaper(photos.get(index).getUrls().getRegular());
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        Log.d("unsplash", error);
+                        Toast.makeText(getBaseContext(), "Couldn't download. Try again", Toast.LENGTH_SHORT).show();
                     }
                 });
 
@@ -699,10 +681,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         View view = inflater.inflate(R.layout.popup_layout, null);
         view.getBackground().setColorFilter(Color.parseColor(bgcolor), PorterDuff.Mode.SRC_ATOP);
 
-        view.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         int measuredHeight = view.getMeasuredHeight();
         int measuredWidth = view.getMeasuredWidth();
 
+        TextView header = (TextView)view.findViewById(R.id.popup_header);
         TextView info = (TextView)view.findViewById(R.id.popup_appinfo);
         TextView edit = (TextView)view.findViewById(R.id.popup_edit);
         TextView hide = (TextView)view.findViewById(R.id.popup_hide);
@@ -715,12 +698,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         lock.setTextColor(Color.parseColor(textColor));
         uninstall.setTextColor(Color.parseColor(textColor));
 
+        header.setText(myapp.getAppname());
+
         popupWindow.setFocusable(true);
-        popupWindow.setWidth(measuredWidth);
+        popupWindow.setWidth((int) (measuredWidth * 1.15));
         popupWindow.setHeight(measuredHeight);
         popupWindow.setElevation(30.f);
         popupWindow.setClippingEnabled(false);
-        //popupWindow.setOverlapAnchor(true);
+        popupWindow.setOverlapAnchor(true);
         popupWindow.setTouchable(true);
         popupWindow.setContentView(view);
 
