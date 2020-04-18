@@ -166,13 +166,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                /*int alpha = (int) (255*slideOffset);
-                Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
-                bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));*/
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
+                    //Log.d("Slide", slideOffset + "");
+                    int alpha = (int) (255*slideOffset);
+                    //Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
+                    bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));
                 }
                 if(!drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
