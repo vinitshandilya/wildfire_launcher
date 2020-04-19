@@ -3,13 +3,10 @@ package com.dragonfire.wildfirelauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.res.ResourcesCompat;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.core.view.MotionEventCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.palette.graphics.Palette;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -28,11 +25,7 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Point;
 import android.graphics.PorterDuff;
-import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
@@ -46,17 +39,13 @@ import android.util.TypedValue;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.PopupMenu;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -64,14 +53,12 @@ import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.kc.unsplash.Unsplash;
-import com.kc.unsplash.api.Order;
 import com.kc.unsplash.models.Photo;
 import com.kc.unsplash.models.SearchResults;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -93,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private PackageListener mPackageListener;
     private PopupWindow popupWindow;
     private View bottomSheet;
+    private List<HomescreenObject> homescreenObjects;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -129,6 +117,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         drawerGridView = findViewById(R.id.grid);
 
         installedAppList = new ArrayList<>();
+        homescreenObjects = new ArrayList<>();
+
         getInstalledAppList(); // fill in the installedAppList
         searchbar = findViewById(R.id.searchbar);
         gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
@@ -250,8 +240,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     case DragEvent.ACTION_DROP:
                         //Log.d(TAG, v.toString());
                         Log.d(TAG, "ACTION_DRAG_DROP");
-                        ImageView appicon = new ImageView(getBaseContext());
-                        appicon.setImageDrawable(myapp.getAppicon());
+                        boolean drop_pos_empty = true;
 
                         int W = homescreen.getWidth();
                         int H = homescreen.getHeight();
@@ -259,49 +248,67 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         int cursor_x = (int) event.getX();
                         int cursor_y = (int) event.getY();
 
-                        appicon.measure(0, 0);
-                        int icon_width = appicon.getMeasuredWidth();
-                        int icon_height = appicon.getMeasuredHeight();
-
                         int snap_row = Math.round(cursor_y/(H/6));
                         int snap_col = Math.round(cursor_x/(W/5));
 
-                        Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
-                        Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
-                        Log.d(TAG, "Vinit icon width " + icon_width);
-                        Log.d(TAG, "Vinit icon height " + icon_height);
-                        Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
-                        Log.d(TAG, "Vinit ==========================================================");
-
-                        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
-                        params.topMargin = snap_row * (H/6);
-                        params.leftMargin = snap_col * (W/5);
-                        homescreen.addView(appicon, params);
-
-                        // Add label
-                        TextView label = new TextView(getBaseContext());
-                        label.setText(myapp.getAppname());
-                        label.setSingleLine();
-                        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
-                        label.setTextColor(Color.WHITE);
-                        RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-                        label.measure(0, 0);       //must call measure!
-                        int label_height = label.getMeasuredHeight(); //get height
-                        int label_width = label.getMeasuredWidth();  //get width
-                        labelparams.topMargin = snap_row * (H/6) + 125;
-                        labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
-                        homescreen.addView(label, labelparams);
-
-                        ClipData.Item item = event.getClipData().getItemAt(0);
-                        final String dragData = item.getText().toString();
-                        final String[] app = dragData.split("~");
-                        appicon.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                Log.d(TAG, "Dragged data is " + dragData);
-                                launchApp(app[1]); // launch app from package name
+                        for(HomescreenObject object : homescreenObjects) {
+                            if(snap_col == object.getX() && snap_row == object.getY()) {
+                                drop_pos_empty=false;
+                                break;
                             }
-                        });
+                        }
+                        if(drop_pos_empty) {
+                            ImageView appicon = new ImageView(getBaseContext());
+                            appicon.setImageDrawable(myapp.getAppicon());
+
+                            appicon.measure(0, 0);
+                            int icon_width = appicon.getMeasuredWidth();
+                            int icon_height = appicon.getMeasuredHeight();
+
+                            Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
+                            Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
+                            Log.d(TAG, "Vinit icon width " + icon_width);
+                            Log.d(TAG, "Vinit icon height " + icon_height);
+                            Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
+                            Log.d(TAG, "Vinit ==========================================================");
+
+                            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                            params.topMargin = snap_row * (H/6);
+                            params.leftMargin = snap_col * (W/5);
+                            homescreen.addView(appicon, params);
+
+                            // Add label
+                            TextView label = new TextView(getBaseContext());
+                            label.setText(myapp.getAppname());
+                            label.setSingleLine();
+                            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                            label.setTextColor(Color.WHITE);
+                            RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT);
+                            label.measure(0, 0);       //must call measure!
+                            int label_height = label.getMeasuredHeight(); //get height
+                            int label_width = label.getMeasuredWidth();  //get width
+                            labelparams.topMargin = snap_row * (H/6) + 125;
+                            labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
+
+                            homescreenObjects.add(new HomescreenObject(myapp, snap_col, snap_row, false));
+                            homescreen.addView(label, labelparams);
+
+                            ClipData.Item item = event.getClipData().getItemAt(0);
+                            final String dragData = item.getText().toString();
+                            final String[] app = dragData.split("~");
+                            appicon.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Log.d(TAG, "Dragged data is " + dragData);
+                                    launchApp(app[1]); // launch app from package name
+                                }
+                            });
+                        }
+                        else {
+                            Log.d("HSO", "Not empty.");
+                            //Add icons in a directory
+                        }
 
                         return true;
 
@@ -418,8 +425,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             Palette p = Palette.from(bitmap).generate();
             String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
             //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
-            String popupTextColor = "#FFFFFF";
-            popupWindow = setPopupWindow(popupBg, popupTextColor);
+            popupWindow = setPopupWindow(popupBg);
             popupWindow.showAsDropDown(longclickedview);
         }
         longclicked = true;
@@ -673,7 +679,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
-    public PopupWindow setPopupWindow(String bgcolor, String textColor) {
+    public PopupWindow setPopupWindow(String bgcolor) {
         final PopupWindow popupWindow = new PopupWindow();
         LayoutInflater inflater = (LayoutInflater)
                 getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -685,12 +691,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         int measuredHeight = view.getMeasuredHeight();
         int measuredWidth = view.getMeasuredWidth();
 
-        TextView header = (TextView)view.findViewById(R.id.popup_header);
-        TextView info = (TextView)view.findViewById(R.id.popup_appinfo);
-        TextView edit = (TextView)view.findViewById(R.id.popup_edit);
-        TextView hide = (TextView)view.findViewById(R.id.popup_hide);
-        TextView lock = (TextView)view.findViewById(R.id.popup_lock);
-        TextView uninstall = (TextView)view.findViewById(R.id.popup_uninstall);
+        TextView header = view.findViewById(R.id.popup_header);
+        TextView info = view.findViewById(R.id.popup_appinfo);
+        TextView edit = view.findViewById(R.id.popup_edit);
+        TextView hide = view.findViewById(R.id.popup_hide);
+        TextView lock = view.findViewById(R.id.popup_lock);
+        TextView uninstall = view.findViewById(R.id.popup_uninstall);
+
+        String textColor;
+        double darkness = 1-(0.299*Color.red(Color.parseColor(bgcolor)) + 0.587*Color.green(Color.parseColor(bgcolor)) +
+                0.114*Color.blue(Color.parseColor(bgcolor)))/255;
+        if(darkness<0.5)
+            textColor="#000000";
+        else
+            textColor="#FFFFFF";
 
         info.setTextColor(Color.parseColor(textColor));
         edit.setTextColor(Color.parseColor(textColor));
