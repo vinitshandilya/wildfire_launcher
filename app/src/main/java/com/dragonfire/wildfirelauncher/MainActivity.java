@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private EditText searchbar;
     private PackageListener mPackageListener;
     private PopupWindow popupWindow;
+    private PopupWindow folderpopupwindow;
     private View bottomSheet;
     private List<HomescreenObject> homescreenObjects;
 
@@ -99,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        final RelativeLayout homescreen = findViewById(R.id.homescreen);
 
         displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
@@ -207,15 +209,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-        // Long hold to select widgets
-        viewPager.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                selectWidget();
-                return true;
-            }
-        });
-
         // Broadcast receiver when packages are installed
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -226,7 +219,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         registerReceiver(mPackageListener, filter);
 
         // Drag receiver on home screen grid
-        final RelativeLayout homescreen = findViewById(R.id.homescreen);
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
@@ -281,8 +273,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 folderview.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
-                                        PopupWindow folderpopup = setFolderPopup(homescreenObject.getFolder());
-                                        folderpopup.showAsDropDown(v);
+                                        folderpopupwindow = setFolderPopup(homescreenObject.getFolder());
+                                        folderpopupwindow.showAsDropDown(v);
                                     }
                                 });
 
@@ -463,7 +455,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onLongPress(MotionEvent event) {
         Vibrator vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         vb.vibrate(30);
-        if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED) {
+        if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
+        currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
+            Log.d("LONGPRESS", myapp.getAppname());
+            // case-1: either long pressed on empty space
+            // case-2: either long pressed on app icon
+            // case-3: either long pressed on home folder icon
+            // case-4: either long pressed on folder app icon
+            // handle all above cases separately
+
             selectWidget();
         }
         // Else if an app is clicked
@@ -801,6 +801,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         View view = inflater.inflate(R.layout.folder_popup_layout, null);
         GridView foldergrid = view.findViewById(R.id.foldergrid);
         AppAdapter foldergridadapter = new AppAdapter(getApplicationContext(), applist);
+        foldergridadapter.setmAppClickListener(this);
+        foldergridadapter.setmAppDragListener(this);
+        foldergridadapter.setmAppActionDownListener(this);
         foldergrid.setAdapter(foldergridadapter);
 
         final PopupWindow pw = new PopupWindow();
