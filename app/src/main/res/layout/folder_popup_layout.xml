@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/foldercontainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/popup_shape_bg"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/folderheader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:textSize="15sp"
+        android:gravity="center"
+        android:background="#000000"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:typeface="monospace"
+        android:text="New Folder" />
+
+    <GridView
+        android:layout_marginBottom="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/folderheader"
+        android:id="@+id/foldergrid"
+        android:scrollbars="vertical"
+        android:background="#FFFFFF"
+        android:numColumns="4"
+        android:verticalSpacing="8dp"
+        android:stretchMode="columnWidth"
+        android:layout_gravity="center" >
+
+    </GridView>
+
+
+
+
+</LinearLayout>

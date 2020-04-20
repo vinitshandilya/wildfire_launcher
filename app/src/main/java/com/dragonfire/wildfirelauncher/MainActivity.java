@@ -46,6 +46,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -238,26 +239,57 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DROP:
-                        //Log.d(TAG, v.toString());
-                        Log.d(TAG, "ACTION_DRAG_DROP");
-                        boolean drop_pos_empty = true;
-
+                        boolean drop_area_empty = true;
+                        final List<AppObject> folder = new ArrayList<>();
                         int W = homescreen.getWidth();
                         int H = homescreen.getHeight();
-
                         int cursor_x = (int) event.getX();
                         int cursor_y = (int) event.getY();
-
                         int snap_row = Math.round(cursor_y/(H/6));
                         int snap_col = Math.round(cursor_x/(W/5));
 
-                        for(HomescreenObject object : homescreenObjects) {
-                            if(snap_col == object.getX() && snap_row == object.getY()) {
-                                drop_pos_empty=false;
+                        for(final HomescreenObject homescreenObject : homescreenObjects) {
+                            if(snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY()) {
+                                drop_area_empty=false; // drop area is not empty
+                                homescreenObject.getFolder().add(myapp);
+                                homescreenObject.setDir(true);
+
+                                homescreen.removeView(homescreenObject.getIcon());
+                                homescreen.removeView(homescreenObject.getLabel());
+                                final ImageView folderview = new ImageView(getBaseContext());
+                                folderview.setImageResource(R.drawable.ic_launcher_background);
+                                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                                params.topMargin = snap_row * (H/6);
+                                params.leftMargin = snap_col * (W/5);
+                                homescreen.addView(folderview, params);
+
+                                // Add label
+                                TextView label = new TextView(getBaseContext());
+                                label.setText("New folder");
+                                label.setSingleLine();
+                                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                                label.setTextColor(Color.WHITE);
+                                RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                        RelativeLayout.LayoutParams.WRAP_CONTENT);
+                                label.measure(0, 0);       //must call measure!
+                                int label_height = label.getMeasuredHeight(); //get height
+                                int label_width = label.getMeasuredWidth();  //get width
+                                labelparams.topMargin = snap_row * (H/6) + 125;
+                                labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
+                                homescreen.addView(label, labelparams);
+
+                                folderview.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        PopupWindow folderpopup = setFolderPopup(homescreenObject.getFolder());
+                                        folderpopup.showAsDropDown(v);
+                                    }
+                                });
+
                                 break;
                             }
                         }
-                        if(drop_pos_empty) {
+                        if(drop_area_empty) { // single app drop
                             ImageView appicon = new ImageView(getBaseContext());
                             appicon.setImageDrawable(myapp.getAppicon());
 
@@ -290,9 +322,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             int label_width = label.getMeasuredWidth();  //get width
                             labelparams.topMargin = snap_row * (H/6) + 125;
                             labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
-
-                            homescreenObjects.add(new HomescreenObject(myapp, snap_col, snap_row, false));
                             homescreen.addView(label, labelparams);
+
+                            folder.add(myapp); // wrap single app in a list
+                            homescreenObjects.add(new HomescreenObject(folder, snap_col, snap_row, false, appicon, label));
 
                             ClipData.Item item = event.getClipData().getItemAt(0);
                             final String dragData = item.getText().toString();
@@ -305,9 +338,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 }
                             });
                         }
-                        else {
-                            Log.d("HSO", "Not empty.");
-                            //Add icons in a directory
+                        else { //Create a folder with hso object
+                            // Remove view and label from the position
+
+
+                            // Open folder pop-up when clicked on folder icon, folderview
+
+
+                        }
+
+                        for(HomescreenObject billi : homescreenObjects) {
+                            String str="";
+                            for(AppObject ao : billi.getFolder()) {
+                                Log.d("HSO", ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir());
+                                str = str + ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir() + "\n";
+                            }
+                            Toast.makeText(getBaseContext(), str, Toast.LENGTH_SHORT).show();
+                            Log.d("HSO", "---");
                         }
 
                         return true;
@@ -743,6 +790,35 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
 
         return popupWindow;
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private PopupWindow setFolderPopup(List<AppObject> applist) {
+        LayoutInflater inflater = (LayoutInflater)
+                getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        View view = inflater.inflate(R.layout.folder_popup_layout, null);
+        GridView foldergrid = view.findViewById(R.id.foldergrid);
+        AppAdapter foldergridadapter = new AppAdapter(getApplicationContext(), applist);
+        foldergrid.setAdapter(foldergridadapter);
+
+        final PopupWindow pw = new PopupWindow();
+
+        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        int measuredHeight = view.getMeasuredHeight();
+        int measuredWidth = view.getMeasuredWidth();
+
+        pw.setFocusable(true);
+        pw.setWidth(measuredWidth * 2);
+        pw.setHeight(measuredHeight * 2);
+        pw.setElevation(30.f);
+        pw.setClippingEnabled(false);
+        pw.setOverlapAnchor(true);
+        pw.setTouchable(true);
+        pw.setContentView(view);
+
+        return pw;
 
     }
 

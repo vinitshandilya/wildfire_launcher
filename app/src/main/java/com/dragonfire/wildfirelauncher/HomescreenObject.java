@@ -1,30 +1,50 @@
 package com.dragonfire.wildfirelauncher;
 
+import android.view.View;
+
+import java.util.List;
+
 public class HomescreenObject {
-    private AppObject appObject;
+    private List<AppObject> folder;
     private int x, y;
     private boolean isDir;
+    private View icon;
+    private View label;
 
-    HomescreenObject(AppObject appObject, int x, int y, boolean isDir) {
-        this.appObject = appObject;
+    public HomescreenObject(List<AppObject> folder, int x, int y, boolean isDir, View icon, View label) {
+        this.folder = folder;
         this.x = x;
         this.y = y;
         this.isDir = isDir;
+        this.icon = icon;
+        this.label = label;
     }
 
-    public AppObject getAppObject() {
-        return appObject;
+    public List<AppObject> getFolder() {
+        return folder;
     }
 
-    int getX() {
+    public int getX() {
         return x;
     }
 
-    int getY() {
+    public int getY() {
         return y;
     }
 
     public boolean isDir() {
         return isDir;
+    }
+
+    public View getIcon() {
+        return icon;
+    }
+
+    public View getLabel() {
+        return label;
+    }
+
+    public void setDir(boolean dir) {
+        isDir = dir;
     }
 }
