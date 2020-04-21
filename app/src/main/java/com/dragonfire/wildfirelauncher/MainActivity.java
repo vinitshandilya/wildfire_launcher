@@ -67,8 +67,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, AppClickListener, AppDragListener,
-        AppActionDownListener {
+public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
+        AppClickListener, AppDragListener, AppLongClickListener, AppActionDownListener {
 
     private GestureDetectorCompat mDetector;
     private BottomSheetBehavior mBottomSheetBehavior;
@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private PopupWindow folderpopupwindow;
     private View bottomSheet;
     private List<HomescreenObject> homescreenObjects;
+    private Vibrator vb;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -106,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
         screenHight = displaymetrics.heightPixels;
         screenWidth = displaymetrics.widthPixels;
+        vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
         viewPager = findViewById(R.id.pager);
         FragmentStateAdapter pagerAdapter = new ScreenSlidePagerAdapter(this);
@@ -129,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         gridAdapter.setmAppClickListener(this);
         gridAdapter.setmAppDragListener(this);
         gridAdapter.setmAppActionDownListener(this);
+        gridAdapter.setmAppLongClickListener(this);
 
         drawerGridView.setAdapter(gridAdapter);
 
@@ -196,6 +199,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 gridAdapter = new AppAdapter(getBaseContext(), filteredApps);
                 drawerGridView.setAdapter(gridAdapter);
                 gridAdapter.setmAppClickListener(MainActivity.this);
+                gridAdapter.setmAppLongClickListener(MainActivity.this);
                 gridAdapter.setmAppDragListener(MainActivity.this);
                 gridAdapter.setmAppActionDownListener(MainActivity.this);
 
@@ -222,15 +226,17 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
-
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
+                        Log.d("COOK", "ACTION_DRAG_STARTED: " + myapp.getAppname());
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
+                        Log.d("COOK", "ACTION_DRAG_ENTERED: " + myapp.getAppname());
                         return true;
 
                     case DragEvent.ACTION_DROP:
+                        Log.d("COOK", "ACTION_DROP: " + myapp.getAppname());
                         boolean drop_area_empty = true;
                         final List<AppObject> folder = new ArrayList<>();
                         int W = homescreen.getWidth();
@@ -340,12 +346,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         }
 
                         for(HomescreenObject billi : homescreenObjects) {
-                            String str="";
+                            //String str="";
                             for(AppObject ao : billi.getFolder()) {
                                 Log.d("HSO", ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir());
-                                str = str + ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir() + "\n";
+                                //str = str + ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir() + "\n";
                             }
-                            Toast.makeText(getBaseContext(), str, Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(getBaseContext(), str, Toast.LENGTH_SHORT).show();
                             Log.d("HSO", "---");
                         }
 
@@ -403,6 +409,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         launchApp(appObject.getPackagename());
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Override
+    public void onAppLongClicked(AppObject appObject, View clickedView) {
+        vb.vibrate(30);
+        Bitmap bitmap = getBitmapFromDrawable(myapp.getAppicon());
+        Palette p = Palette.from(bitmap).generate();
+        String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
+        //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
+        popupWindow = setPopupWindow(popupBg);
+        popupWindow.showAsDropDown(clickedView);
+        longclicked=true;
+    }
+
     // Gesture intercept
     @Override
     public boolean onTouchEvent(MotionEvent event){
@@ -450,30 +469,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onLongPress(MotionEvent event) {
-        Vibrator vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        vb.vibrate(30);
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
         currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
-            Log.d("LONGPRESS", myapp.getAppname());
-            // case-1: either long pressed on empty space
-            // case-2: either long pressed on app icon
-            // case-3: either long pressed on home folder icon
-            // case-4: either long pressed on folder app icon
-            // handle all above cases separately
-
+            vb.vibrate(30);
             selectWidget();
-        }
-        // Else if an app is clicked
-        else {
-            Bitmap bitmap = getBitmapFromDrawable(myapp.getAppicon());
-            Palette p = Palette.from(bitmap).generate();
-            String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
-            //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
-            popupWindow = setPopupWindow(popupBg);
-            popupWindow.showAsDropDown(longclickedview);
         }
         longclicked = true;
     }
@@ -507,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 mBottomSheetBehavior.setPeekHeight(peek);
                 double ratio = (double)peek/screenHight;
                 double alpha = 255 * ratio;
-                Log.d("Cook", "Alpha: " + alpha + " peek: " + peek + " Screenheight: " + screenHight + " peek/screenheight: " + ratio);
+                //Log.d("Cook", "Alpha: " + alpha + " peek: " + peek + " Screenheight: " + screenHight + " peek/screenheight: " + ratio);
                 bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
 
                 if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
@@ -639,6 +640,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     null,      // no need to use local data
                     0          // flags (not currently used, set to 0)
             );
+            Log.d("COOK", "Dragging: " + appObject.getAppname());
             longclicked = false;
         }
     }
@@ -804,11 +806,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         foldergridadapter.setmAppClickListener(this);
         foldergridadapter.setmAppDragListener(this);
         foldergridadapter.setmAppActionDownListener(this);
+        foldergridadapter.setmAppLongClickListener(this);
         foldergrid.setAdapter(foldergridadapter);
 
         final PopupWindow pw = new PopupWindow();
 
-        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        view.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         int measuredHeight = view.getMeasuredHeight();
         int measuredWidth = view.getMeasuredWidth();
 

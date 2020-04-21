@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.List;
 
@@ -18,12 +19,17 @@ public class AppAdapter extends BaseAdapter {
     private Context context;
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
+    private AppLongClickListener mAppLongClickListener;
     private AppActionDownListener mAppActionDownListener;
     private AppDragListener mAppDragListener;
     private long t1=0, t2=0;
 
     void setmAppActionDownListener(AppActionDownListener mAppActionDownListener) {
         this.mAppActionDownListener = mAppActionDownListener;
+    }
+
+    void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
+        this.mAppLongClickListener = mAppLongClickListener;
     }
 
     void setmAppClickListener(AppClickListener mAppClickListener) {
@@ -77,16 +83,16 @@ public class AppAdapter extends BaseAdapter {
             public boolean onTouch(View v, MotionEvent ev) {
                 switch (ev.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
-                        Log.d("Cook", "Action down: " + ev.getAction());
+                        //Log.d("Cook", "Action down: " + ev.getAction());
                         v.setPressed(true);
                         if(mAppActionDownListener != null) {
                             mAppActionDownListener.onAppActionDown(appObjectList.get(position), v);
                         }
                         t1 = System.currentTimeMillis();
-                        return true;
+                        return false;
 
                     case MotionEvent.ACTION_UP:
-                        Log.d("Cook", "Action up: " + ev.getAction());
+                        //Log.d("Cook", "Action up: " + ev.getAction());
                         v.setPressed(false);
                         t2 = System.currentTimeMillis();
                         if(Math.abs(t2-t1) < ViewConfiguration.getLongPressTimeout()) {
@@ -99,7 +105,7 @@ public class AppAdapter extends BaseAdapter {
 
                     case MotionEvent.ACTION_MOVE:
                         v.setPressed(false);
-                        Log.d("Cook", "Action move: " + ev.getAction());
+                        //Log.d("Cook", "Action move: " + ev.getAction());
                         if(mAppDragListener!=null) {
                             mAppDragListener.onAppDragged(appObjectList.get(position), v);
                         }
@@ -110,6 +116,17 @@ public class AppAdapter extends BaseAdapter {
                         return false;
 
                 }
+            }
+        });
+
+        v.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                //Toast.makeText(context, "Long clicked on " + appObjectList.get(position).getAppname(), Toast.LENGTH_SHORT).show();
+                if(mAppLongClickListener!=null) {
+                    mAppLongClickListener.onAppLongClicked(appObjectList.get(position), v);
+                }
+                return false;
             }
         });
 
