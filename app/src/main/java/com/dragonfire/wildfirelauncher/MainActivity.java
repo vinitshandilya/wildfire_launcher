@@ -95,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     AppObject myapp;
     View longclickedview;
     boolean longclicked;
+    HomescreenObject touchedhomescreenobject;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -166,6 +167,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 /*int alpha = (int) (255*slideOffset);
                 Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
                 bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));*/
+                Log.d("PEEK", "Peek height: " + mBottomSheetBehavior.getPeekHeight() + "");
+
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -243,8 +246,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         int H = homescreen.getHeight();
                         int cursor_x = (int) event.getX();
                         int cursor_y = (int) event.getY();
-                        int snap_row = Math.round(cursor_y/(H/6));
-                        int snap_col = Math.round(cursor_x/(W/5));
+                        final int snap_row = Math.round(cursor_y/(H/6));
+                        final int snap_col = Math.round(cursor_x/(W/5));
 
                         for(final HomescreenObject homescreenObject : homescreenObjects) {
                             if(snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY()) {
@@ -276,6 +279,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
                                 homescreen.addView(label, labelparams);
 
+                                folderview.setOnTouchListener(new View.OnTouchListener() {
+                                    @Override
+                                    public boolean onTouch(View v, MotionEvent event) {
+                                        touchedhomescreenobject = homescreenObject;
+                                        return true;
+                                    }
+                                });
+
                                 folderview.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
@@ -288,19 +299,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             }
                         }
                         if(drop_area_empty) { // single app drop
-                            ImageView appicon = new ImageView(getBaseContext());
+                            final ImageView appicon = new ImageView(getBaseContext());
                             appicon.setImageDrawable(myapp.getAppicon());
 
                             appicon.measure(0, 0);
                             int icon_width = appicon.getMeasuredWidth();
                             int icon_height = appicon.getMeasuredHeight();
 
-                            Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
+                            /*Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
                             Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
                             Log.d(TAG, "Vinit icon width " + icon_width);
                             Log.d(TAG, "Vinit icon height " + icon_height);
                             Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
-                            Log.d(TAG, "Vinit ==========================================================");
+                            Log.d(TAG, "Vinit ==========================================================");*/
 
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                             params.topMargin = snap_row * (H/6);
@@ -308,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             homescreen.addView(appicon, params);
 
                             // Add label
-                            TextView label = new TextView(getBaseContext());
+                            final TextView label = new TextView(getBaseContext());
                             label.setText(myapp.getAppname());
                             label.setSingleLine();
                             label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
@@ -335,31 +346,40 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                     launchApp(app[1]); // launch app from package name
                                 }
                             });
-                        }
-                        else { //Create a folder with hso object
-                            // Remove view and label from the position
 
+                            // Enable drag on icon once added on homescreen
+                            appicon.setOnTouchListener(new View.OnTouchListener() {
+                                @Override
+                                public boolean onTouch(View v, MotionEvent event) {
+                                    switch(event.getAction()) {
+                                        case MotionEvent.ACTION_DOWN:
+                                            touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label);
+                                            return true;
 
-                            // Open folder pop-up when clicked on folder icon, folderview
+                                        case MotionEvent.ACTION_UP:
 
+                                            return true;
+
+                                    }
+                                    return false;
+                                }
+                            });
 
                         }
 
                         for(HomescreenObject billi : homescreenObjects) {
                             //String str="";
                             for(AppObject ao : billi.getFolder()) {
-                                Log.d("HSO", ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir());
+                                Log.d(TAG, ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir());
                                 //str = str + ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir() + "\n";
                             }
                             //Toast.makeText(getBaseContext(), str, Toast.LENGTH_SHORT).show();
-                            Log.d("HSO", "---");
+                            Log.d(TAG, "---");
                         }
 
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENDED:
-                        Log.d(TAG, v.toString());
-                        Log.d(TAG, "ACTION_DRAG_ENDED");
 
                         return true;
 
@@ -465,7 +485,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppActionDown(AppObject appObject, View clickedView) {
         myapp = appObject;
-        longclickedview = clickedView;
+        longclickedview = clickedView; // keep track of dragged app object
 
     }
 
@@ -474,8 +494,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
         currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
             vb.vibrate(30);
-            selectWidget();
+            if(touchedhomescreenobject!=null) {
+                if(touchedhomescreenobject.getFolder().size()==1) { // home screen icon clicked
+                    Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
+                }
+                else { // home screen folder clicked
+                    Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().size() + " long pressed", Toast.LENGTH_SHORT).show();
+                }
+                touchedhomescreenobject = null;
+            }
+            else {
+                selectWidget();
+            }
         }
+
         longclicked = true;
     }
 
@@ -621,27 +653,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppDragged(AppObject appObject, View clickedView) {
         myapp = appObject;
-        try {
-            popupWindow.dismiss();
-        } catch (Exception e) {}
 
         if(longclicked) {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
             hideKeypad();
-            //searchbar.setText("");
-            ClipData.Item item = new ClipData.Item(myapp.getAppname()+"~"+myapp.getPackagename()+"~"+myapp.getAppicon());
-            ClipData dragData = new ClipData(
-                    (CharSequence) longclickedview.getTag(),
-                    new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                    item);
-            longclickedview.findViewById(R.id.appicondrawable).startDrag(dragData,  // the data to be dragged
-                    new View.DragShadowBuilder(longclickedview.findViewById(R.id.appicondrawable)),  // the drag shadow builder
-                    null,      // no need to use local data
-                    0          // flags (not currently used, set to 0)
-            );
-            Log.d("COOK", "Dragging: " + appObject.getAppname());
+            enableDrag(appObject, longclickedview);
             longclicked = false;
+        }
+
+        if(folderpopupwindow!=null && folderpopupwindow.isShowing()) {
+            folderpopupwindow.dismiss();
+        }
+        if(popupWindow!=null && popupWindow.isShowing()) {
+            popupWindow.dismiss();
         }
     }
 
@@ -865,6 +890,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
         drawable.draw(canvas);
         return bmp;
+    }
+
+    private void enableDrag(AppObject ao, View draggedview) {
+        ClipData.Item item = new ClipData.Item(ao.getAppname()+"~"+ao.getPackagename()+"~"+ao.getAppicon());
+        ClipData dragData = new ClipData(
+                (CharSequence) draggedview.getTag(),
+                new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                item);
+        draggedview.findViewById(R.id.appicondrawable).startDrag(dragData,  // the data to be dragged
+                new View.DragShadowBuilder(draggedview.findViewById(R.id.appicondrawable)),  // the drag shadow builder
+                null,      // no need to use local data
+                0          // flags (not currently used, set to 0)
+        );
+        Log.d("COOK", "Dragging: " + ao.getAppname());
     }
 
 }
