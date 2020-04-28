@@ -10,6 +10,7 @@ import androidx.palette.graphics.Palette;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.annotation.SuppressLint;
 import android.app.WallpaperManager;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View bottomSheet;
     private List<HomescreenObject> homescreenObjects;
     private Vibrator vb;
+    private boolean homeapplongpressed;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -279,21 +281,29 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
                                 homescreen.addView(label, labelparams);
 
-                                folderview.setOnTouchListener(new View.OnTouchListener() {
-                                    @Override
-                                    public boolean onTouch(View v, MotionEvent event) {
-                                        touchedhomescreenobject = homescreenObject;
-                                        return true;
-                                    }
-                                });
-
                                 folderview.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
-                                        folderpopupwindow = setFolderPopup(homescreenObject.getFolder());
-                                        folderpopupwindow.showAsDropDown(v);
+                                        if(touchedhomescreenobject!=null) {
+                                            folderpopupwindow = setFolderPopup(homescreenObject.getFolder());
+                                            folderpopupwindow.showAsDropDown(v);
+                                        }
+
                                     }
                                 });
+
+                                // Enable drag on folder icon once added on homescreen
+                                folderview.setOnTouchListener(new View.OnTouchListener() {
+                                    @Override
+                                    public boolean onTouch(View v, MotionEvent event) {
+                                        switch(event.getAction()) {
+                                            case MotionEvent.ACTION_DOWN:
+                                                touchedhomescreenobject = homescreenObject;
+                                        }
+                                        return false;
+                                    }
+                                });
+
 
                                 break;
                             }
@@ -305,13 +315,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             appicon.measure(0, 0);
                             int icon_width = appicon.getMeasuredWidth();
                             int icon_height = appicon.getMeasuredHeight();
-
-                            /*Log.d(TAG, "Vinit (W, H) => " + W +", "+ H);
-                            Log.d(TAG, "Vinit (X, Y) => " + cursor_x +", "+ cursor_y);
-                            Log.d(TAG, "Vinit icon width " + icon_width);
-                            Log.d(TAG, "Vinit icon height " + icon_height);
-                            Log.d(TAG, "Vinit (snaprow, snapcol) => " + snap_row +", "+ snap_col);
-                            Log.d(TAG, "Vinit ==========================================================");*/
 
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                             params.topMargin = snap_row * (H/6);
@@ -334,7 +337,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             homescreen.addView(label, labelparams);
 
                             folder.add(myapp); // wrap single app in a list
-                            homescreenObjects.add(new HomescreenObject(folder, snap_col, snap_row, false, appicon, label));
+                            final HomescreenObject homescreenObject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label);
+                            homescreenObjects.add(homescreenObject);
 
                             ClipData.Item item = event.getClipData().getItemAt(0);
                             final String dragData = item.getText().toString();
@@ -342,24 +346,47 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             appicon.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
-                                    Log.d(TAG, "Dragged data is " + dragData);
-                                    launchApp(app[1]); // launch app from package name
+                                    if(touchedhomescreenobject!=null) {
+                                        Log.d(TAG, "Dragged data is " + dragData);
+                                        launchApp(app[1]); // launch app from package name
+                                    }
+
                                 }
                             });
 
                             // Enable drag on icon once added on homescreen
                             appicon.setOnTouchListener(new View.OnTouchListener() {
+                                @SuppressLint("ClickableViewAccessibility")
                                 @Override
                                 public boolean onTouch(View v, MotionEvent event) {
                                     switch(event.getAction()) {
                                         case MotionEvent.ACTION_DOWN:
                                             touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label);
-                                            return true;
+                                            break;
+                                        case MotionEvent.ACTION_MOVE:
+                                            if(homeapplongpressed) {
+                                                ClipData.Item item = new ClipData.Item(myapp.getAppname()+"~"+myapp.getPackagename()+"~"+myapp.getAppicon());
+                                                ClipData dragData = new ClipData(
+                                                        (CharSequence) v.getTag(),
+                                                        new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                                                        item);
+                                                v.startDrag(dragData,  // the data to be dragged
+                                                        new View.DragShadowBuilder(v),  // the drag shadow builder
+                                                        null,      // no need to use local data
+                                                        0          // flags (not currently used, set to 0)
+                                                );
+                                                Log.d("COOK", "Dragging: " + myapp.getAppname());
+                                                homescreen.removeView(v);
+                                                homescreen.removeView(label);
 
-                                        case MotionEvent.ACTION_UP:
-
-                                            return true;
-
+                                                for(HomescreenObject hso : homescreenObjects) {
+                                                    if(hso.getX() == snap_col && hso.getY() == snap_row) {
+                                                        homescreenObjects.remove(hso);
+                                                        break;
+                                                    }
+                                                }
+                                                homeapplongpressed = false;
+                                            }
                                     }
                                     return false;
                                 }
@@ -497,6 +524,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             if(touchedhomescreenobject!=null) {
                 if(touchedhomescreenobject.getFolder().size()==1) { // home screen icon clicked
                     Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
+                    myapp = touchedhomescreenobject.getFolder().get(0);
+                    homeapplongpressed = true;
                 }
                 else { // home screen folder clicked
                     Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().size() + " long pressed", Toast.LENGTH_SHORT).show();

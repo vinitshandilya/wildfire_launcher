@@ -47,4 +47,12 @@ public class HomescreenObject {
     public void setDir(boolean dir) {
         isDir = dir;
     }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
 }
