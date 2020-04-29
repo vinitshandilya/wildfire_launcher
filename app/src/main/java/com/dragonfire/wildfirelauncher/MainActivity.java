@@ -26,6 +26,7 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -260,7 +261,22 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 homescreen.removeView(homescreenObject.getIcon());
                                 homescreen.removeView(homescreenObject.getLabel());
                                 final ImageView folderview = new ImageView(getBaseContext());
-                                folderview.setImageResource(R.drawable.ic_launcher_background);
+
+                                ArrayList<Bitmap> tinyicons = new ArrayList<>();
+
+                                int i=0;
+                                for(AppObject ao : homescreenObject.getFolder()) {
+                                    if(i>=4)
+                                        break;
+                                    else {
+                                        tinyicons.add(getBitmapFromDrawable(ao.getAppicon()));
+                                    }
+                                    i++;
+                                }
+
+                                folderview.setImageBitmap(generateFolderIcon(tinyicons));
+
+                                //folderview.setImageResource(R.drawable.ic_launcher_background);
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                                 params.topMargin = snap_row * (H/6);
                                 params.leftMargin = snap_col * (W/5);
@@ -303,7 +319,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                         return false;
                                     }
                                 });
-
 
                                 break;
                             }
@@ -522,7 +537,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
             vb.vibrate(30);
             if(touchedhomescreenobject!=null) {
-                if(touchedhomescreenobject.getFolder().size()==1) { // home screen icon clicked
+                if(touchedhomescreenobject.getFolder().size()==1) { // home screen icon long clicked
                     Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
                     myapp = touchedhomescreenobject.getFolder().get(0);
                     homeapplongpressed = true;
@@ -934,5 +949,44 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         );
         Log.d("COOK", "Dragging: " + ao.getAppname());
     }
+
+    private Bitmap generateFolderIcon(ArrayList<Bitmap> bitmaps) {
+        int w = 0, h = 0;
+        w = 2 * bitmaps.get(0).getWidth();
+        h = 2 * bitmaps.get(0).getHeight();
+
+        Bitmap foldericon = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(foldericon);
+        Paint bgpaint = new Paint();
+        bgpaint.setColor(Color.WHITE);
+        bgpaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        canvas.drawPaint(bgpaint);
+        int top = 0;
+        int left = 0;
+        for (int i = 0; i < bitmaps.size(); i++) {
+            Log.d("COOK", "Combine: "+i+"/"+bitmaps.size()+1);
+
+            if(i==0) {
+                top=0; left=0;
+            }
+            else if(i==1) {
+                top = top+bitmaps.get(i).getHeight();
+                left = left+bitmaps.get(i).getWidth();
+            }
+            else if(i==2) {
+                top = 0;
+                left = bitmaps.get(i).getWidth();
+            }
+            else if(i==3) {
+                top = top+bitmaps.get(i).getHeight();
+                left = 0;
+            }
+
+            canvas.drawBitmap(bitmaps.get(i), left, top, null);
+        }
+        return foldericon;
+    }
+
+
 
 }
