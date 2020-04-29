@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private List<HomescreenObject> homescreenObjects;
     private Vibrator vb;
     private boolean homeapplongpressed;
+    private boolean sortbyusage = false;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -442,6 +443,29 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             }
         });
+
+        ImageView sortbtn = findViewById(R.id.sortbtn);
+        sortbtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!sortbyusage) {
+                    Toast.makeText(MainActivity.this, "sorting by usage", Toast.LENGTH_SHORT).show();
+                    gridAdapter = new AppAdapter(getApplicationContext(), timeSortedApps);
+                    sortbyusage = true;
+                }
+                else {
+                    Toast.makeText(MainActivity.this, "sorting by A-Z", Toast.LENGTH_SHORT).show();
+                    gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
+                    sortbyusage = false;
+                }
+                drawerGridView.setAdapter(gridAdapter);
+                gridAdapter.setmAppClickListener(MainActivity.this);
+                gridAdapter.setmAppLongClickListener(MainActivity.this);
+                gridAdapter.setmAppDragListener(MainActivity.this);
+                gridAdapter.setmAppActionDownListener(MainActivity.this);
+
+            }
+        });
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
@@ -722,6 +746,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onPostResume() {
         super.onPostResume();
         sortAppsByTime(); // fill in the timeSortedApps
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -933,7 +958,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         Bitmap foldericon = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(foldericon);
         Paint bgpaint = new Paint();
-        bgpaint.setColor(Color.WHITE);
+        bgpaint.setColor(Color.TRANSPARENT);
         bgpaint.setStyle(Paint.Style.FILL_AND_STROKE);
         canvas.drawPaint(bgpaint);
         int top = 0;

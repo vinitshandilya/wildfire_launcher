@@ -8,33 +8,53 @@
     app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
     app:behavior_peekHeight="0dp">
 
-    <EditText
-        android:id="@+id/searchbar"
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/topbar"
+        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
-        android:background="@drawable/textbox_bg"
-        android:drawableLeft="@android:drawable/ic_menu_search"
-        android:drawablePadding="10dp"
-        android:hint="Search Apps"
-        android:drawableTint="@color/colorAccent"
-        android:typeface="monospace"
-        android:textColorHint="@color/colorAccent"
-        android:textColor="@color/colorAccent"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:textSize="15sp"
-        android:padding="5dp"
-        android:layout_gravity="top" />
+        android:weightSum="100">
+
+        <EditText
+            android:id="@+id/searchbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:background="@drawable/textbox_bg"
+            android:drawableLeft="@android:drawable/ic_menu_search"
+            android:drawablePadding="10dp"
+            android:hint="Search Apps"
+            android:drawableTint="@color/colorAccent"
+            android:typeface="monospace"
+            android:textColorHint="@color/colorAccent"
+            android:textColor="@color/colorAccent"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:textSize="15sp"
+            android:padding="5dp"
+            android:layout_weight="70"
+            android:layout_gravity="top" />
+
+        <ImageView
+            android:id="@+id/sortbtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:layout_weight="30"
+            android:layout_marginTop="40dp"
+            android:layout_marginEnd="20dp"
+            android:textColorHint="@color/colorAccent" />
+
+    </LinearLayout>
 
 
     <GridView
         android:layout_marginBottom="20dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/searchbar"
+        android:layout_below="@+id/topbar"
         android:id="@+id/grid"
         android:scrollbars="vertical"
         android:numColumns="4"
