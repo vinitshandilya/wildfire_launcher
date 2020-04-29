@@ -11,7 +11,10 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.annotation.SuppressLint;
+import android.app.AppOpsManager;
 import android.app.WallpaperManager;
+import android.app.usage.UsageStats;
+import android.app.usage.UsageStatsManager;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
@@ -33,6 +36,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
@@ -48,7 +52,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -67,14 +70,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
         AppClickListener, AppDragListener, AppLongClickListener, AppActionDownListener {
 
+    private static final int MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 10;
     private GestureDetectorCompat mDetector;
     private BottomSheetBehavior mBottomSheetBehavior;
     private List<AppObject> installedAppList;
+    private List<AppObject> timeSortedApps;
     private AppAdapter gridAdapter;
     private boolean drawerExpanded=false;
     private int currentDrawerState=-1;
@@ -127,16 +134,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         installedAppList = new ArrayList<>();
         homescreenObjects = new ArrayList<>();
+        timeSortedApps = new ArrayList<>();
 
         getInstalledAppList(); // fill in the installedAppList
+
         searchbar = findViewById(R.id.searchbar);
         gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
-
         gridAdapter.setmAppClickListener(this);
         gridAdapter.setmAppDragListener(this);
         gridAdapter.setmAppActionDownListener(this);
         gridAdapter.setmAppLongClickListener(this);
-
         drawerGridView.setAdapter(gridAdapter);
 
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
@@ -167,18 +174,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                /*int alpha = (int) (255*slideOffset);
-                Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
-                bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));*/
-                Log.d("PEEK", "Peek height: " + mBottomSheetBehavior.getPeekHeight() + "");
-
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
-                    //Log.d("Slide", slideOffset + "");
                     int alpha = (int) (255*slideOffset);
-                    //Log.d("Cook", "Alpha: " + alpha + " Slide offset: " + slideOffset);
                     bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));
                 }
                 if(!drawerExpanded) {
@@ -211,7 +211,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                 for(AppObject currentApp : installedAppList) {
                     if(currentApp.getAppname().toLowerCase().contains(s.toString().toLowerCase())) {
-                        Log.d("Wildfire", currentApp.getAppname());
                         filteredApps.add(currentApp);
                         gridAdapter.notifyDataSetChanged();
                     }
@@ -234,15 +233,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onDrag(View v, DragEvent event) {
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d("COOK", "ACTION_DRAG_STARTED: " + myapp.getAppname());
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d("COOK", "ACTION_DRAG_ENTERED: " + myapp.getAppname());
                         return true;
 
                     case DragEvent.ACTION_DROP:
-                        Log.d("COOK", "ACTION_DROP: " + myapp.getAppname());
                         boolean drop_area_empty = true;
                         final List<AppObject> folder = new ArrayList<>();
                         int W = homescreen.getWidth();
@@ -273,10 +269,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                     }
                                     i++;
                                 }
-
                                 folderview.setImageBitmap(generateFolderIcon(tinyicons));
-
-                                //folderview.setImageResource(R.drawable.ic_launcher_background);
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                                 params.topMargin = snap_row * (H/6);
                                 params.leftMargin = snap_col * (W/5);
@@ -327,10 +320,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             final ImageView appicon = new ImageView(getBaseContext());
                             appicon.setImageDrawable(myapp.getAppicon());
 
-                            appicon.measure(0, 0);
-                            int icon_width = appicon.getMeasuredWidth();
-                            int icon_height = appicon.getMeasuredHeight();
-
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                             params.topMargin = snap_row * (H/6);
                             params.leftMargin = snap_col * (W/5);
@@ -362,7 +351,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 @Override
                                 public void onClick(View v) {
                                     if(touchedhomescreenobject!=null) {
-                                        Log.d(TAG, "Dragged data is " + dragData);
                                         launchApp(app[1]); // launch app from package name
                                     }
 
@@ -390,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                                         null,      // no need to use local data
                                                         0          // flags (not currently used, set to 0)
                                                 );
-                                                Log.d("COOK", "Dragging: " + myapp.getAppname());
+
                                                 homescreen.removeView(v);
                                                 homescreen.removeView(label);
 
@@ -407,16 +395,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 }
                             });
 
-                        }
-
-                        for(HomescreenObject billi : homescreenObjects) {
-                            //String str="";
-                            for(AppObject ao : billi.getFolder()) {
-                                Log.d(TAG, ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir());
-                                //str = str + ao.getAppname() + ", X=" + billi.getX() + ", Y=" + billi.getY() + " isdir=" + billi.isDir() + "\n";
-                            }
-                            //Toast.makeText(getBaseContext(), str, Toast.LENGTH_SHORT).show();
-                            Log.d(TAG, "---");
                         }
 
                         return true;
@@ -466,6 +444,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     @Override
     public void onAppClicked(AppObject appObject, View clickedView) {
         launchApp(appObject.getPackagename());
@@ -568,23 +547,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             if(event1.getY() <= event2.getY()) { // down scroll when drawer is expanded
                 if(peek<screenHight/2)
                     peek=0;
-                //Log.d("Cook", "Scroll DN: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
                 mBottomSheetBehavior.setPeekHeight(peek);
-                /*double ratio = (double)peek/screenHight;
-                double alpha = 255 * ratio;
-                Log.d("Cook", "Alpha: " + alpha + " peek: " + peek + " Screenheight: " + screenHight + " peek/screenheight: " + ratio);
-                bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));*/
                 if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED)
                     drawerExpanded = false;
             }
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                //Log.d("Cook", "Scroll UP: " + screenHight + ", " + event2.getY() + ", peek: " + peek);
                 mBottomSheetBehavior.setPeekHeight(peek);
                 double ratio = (double)peek/screenHight;
                 double alpha = 255 * ratio;
-                //Log.d("Cook", "Alpha: " + alpha + " peek: " + peek + " Screenheight: " + screenHight + " peek/screenheight: " + ratio);
                 bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
 
                 if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
@@ -611,6 +583,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         return mDetector.onTouchEvent(ev);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     private void getInstalledAppList() {
         Intent intent = new Intent(Intent.ACTION_MAIN, null);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -716,6 +689,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     public class PackageListener extends BroadcastReceiver { // need to fix
 
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
         @Override
         public void onReceive(Context context, Intent intent) {
             System.out.println("Broadcast received");
@@ -743,9 +717,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         } catch (Exception e) {}
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     @Override
     protected void onPostResume() {
         super.onPostResume();
+        sortAppsByTime(); // fill in the timeSortedApps
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -947,7 +923,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 null,      // no need to use local data
                 0          // flags (not currently used, set to 0)
         );
-        Log.d("COOK", "Dragging: " + ao.getAppname());
     }
 
     private Bitmap generateFolderIcon(ArrayList<Bitmap> bitmaps) {
@@ -964,8 +939,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         int top = 0;
         int left = 0;
         for (int i = 0; i < bitmaps.size(); i++) {
-            Log.d("COOK", "Combine: "+i+"/"+bitmaps.size()+1);
-
             if(i==0) {
                 top=0; left=0;
             }
@@ -987,6 +960,45 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         return foldericon;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
+    private void sortAppsByTime() {
+        timeSortedApps.clear();
+        AppOpsManager appOps = (AppOpsManager)
+                getSystemService(Context.APP_OPS_SERVICE);
+        int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(), getPackageName());
 
+        if(mode != AppOpsManager.MODE_ALLOWED) {
+            startActivityForResult(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS), MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS);
+        }
+
+        UsageStatsManager mUsageStatsManager = (UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
+        assert mUsageStatsManager != null;
+        Map<String, UsageStats> lUsageStatsMap = mUsageStatsManager.
+                queryAndAggregateUsageStats(System.currentTimeMillis() - 86400000, System.currentTimeMillis()); // last 24 hours
+
+        for(AppObject ao : installedAppList) {
+            try {
+                long totalTimeUsageInMillis = Objects.requireNonNull(lUsageStatsMap.get(ao.getPackagename())).getTotalTimeInForeground();
+                ao.setUsagetime(totalTimeUsageInMillis);
+                timeSortedApps.add(ao);
+            }
+            catch(Exception e) {
+                ao.setUsagetime(0);
+            }
+        }
+
+        Collections.sort(timeSortedApps, new Comparator<AppObject>() {
+            @Override
+            public int compare(AppObject o1, AppObject o2) {
+                return Long.compare(o2.getUsagetime(), o1.getUsagetime());
+            }
+        });
+
+        for(AppObject x : timeSortedApps) {
+            Log.d(TAG, x.getAppname() + " : " + x.getUsagetime());
+        }
+
+    }
 
 }

@@ -6,6 +6,7 @@ public class AppObject {
 
     String appname, packagename;
     Drawable appicon;
+    long usagetime;
 
     public AppObject(String appname, String packagename, Drawable appicon) {
         this.appname = appname;
@@ -23,5 +24,13 @@ public class AppObject {
 
     public Drawable getAppicon() {
         return appicon;
+    }
+
+    public void setUsagetime(long usagetime) {
+        this.usagetime = usagetime;
+    }
+
+    public long getUsagetime() {
+        return usagetime;
     }
 }
