@@ -1,6 +1,11 @@
 package com.dragonfire.wildfirelauncher;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -10,7 +15,12 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
+
 import java.util.List;
+
+import androidx.annotation.NonNull;
+import jp.wasabeef.picasso.transformations.CropCircleTransformation;
 
 
 public class AppAdapter extends BaseAdapter {
@@ -74,8 +84,9 @@ public class AppAdapter extends BaseAdapter {
         ImageView icon = v.findViewById(R.id.appicondrawable);
         TextView appname = v.findViewById(R.id.appname);
 
-        icon.setImageDrawable(appObjectList.get(position).getAppicon());
+        //icon.setImageDrawable(appObjectList.get(position).getAppicon());
         appname.setText(appObjectList.get(position).getAppname());
+        icon.setImageBitmap(appObjectList.get(position).getIconBitmap());
 
         v.setOnTouchListener(new View.OnTouchListener() {
             @Override
