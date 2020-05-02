@@ -16,7 +16,6 @@
         android:maxWidth="40dp"
         android:maxHeight="40dp"
         android:scaleType="fitCenter"
-        android:layout_marginStart="3dp"
         android:src="@drawable/ic_launcher_background" />
 
     <TextView
@@ -28,7 +27,6 @@
         android:text="app name"
         android:textAlignment="center"
         android:textSize="10sp"
-        android:typeface="monospace"
         android:textColor="#000000" />
 
 </LinearLayout>

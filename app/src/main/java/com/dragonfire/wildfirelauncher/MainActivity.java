@@ -9,6 +9,7 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.palette.graphics.Palette;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
+import in.srain.cube.views.GridViewWithHeaderAndFooter;
 
 import android.annotation.SuppressLint;
 import android.app.AppOpsManager;
@@ -83,14 +84,18 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private List<AppObject> installedAppList;
     private List<AppObject> timeSortedApps;
     private AppAdapter gridAdapter;
+    private AppAdapter recentappadapter;
     private boolean drawerExpanded=false;
     private int currentDrawerState=-1;
-    private GridView drawerGridView;
+    private GridViewWithHeaderAndFooter drawerGridView;
     private EditText searchbar;
     private PackageListener mPackageListener;
     private PopupWindow popupWindow;
     private PopupWindow folderpopupwindow;
     private View bottomSheet;
+    private View headerview;
+    private GridView headergrid;
+    private View footerview;
     private List<HomescreenObject> homescreenObjects;
     private Vibrator vb;
     private boolean homeapplongpressed;
@@ -132,6 +137,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mBottomSheetBehavior.setHideable(true);
 
         drawerGridView = findViewById(R.id.grid);
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        headerview = layoutInflater.inflate(R.layout.drawer_header, null);
+        //footerview = layoutInflater.inflate(R.layout.drawer_footer, null);
+        drawerGridView.addHeaderView(headerview);
+        //drawerGridView.addFooterView(footerview);
+
 
         installedAppList = new ArrayList<>();
         homescreenObjects = new ArrayList<>();
@@ -418,7 +429,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         "natural history", "abstract", "amoled", "dark", "neon", "sensual", "lighthouse", "astronomy", "high quality",
         "buildings", "Lingerie", "Summer", "airplanes", "moon", "cute", "dogs", "cats",
                 "gods", "marvel", "bikini", "sports", "india", "hawaii", "winter", "Christmas", "couple", "love",
-                "sweden", "europe", "fashion", "kiss", "romance",
+                "sweden", "europe", "fashion", "kiss", "romance", "Europe", "trending",
                 "funny", "quotes", "humor"};
 
         changeWallpaper.setOnClickListener(new View.OnClickListener() {
@@ -746,6 +757,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onPostResume() {
         super.onPostResume();
         sortAppsByTime(); // fill in the timeSortedApps
+
+        List<AppObject> first4 = new ArrayList<>();
+        first4.add(timeSortedApps.get(0));
+        first4.add(timeSortedApps.get(1));
+        first4.add(timeSortedApps.get(2));
+        first4.add(timeSortedApps.get(3));
+
+        recentappadapter = new AppAdapter(getApplicationContext(), first4);
+        recentappadapter.setmAppClickListener(this);
+        recentappadapter.setmAppDragListener(this);
+        recentappadapter.setmAppActionDownListener(this);
+        recentappadapter.setmAppLongClickListener(this);
+        headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
+        headergrid.setAdapter(recentappadapter);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);

@@ -26,13 +26,12 @@
             android:drawableLeft="@android:drawable/ic_menu_search"
             android:drawablePadding="10dp"
             android:hint="Search Apps"
-            android:drawableTint="@color/colorAccent"
-            android:typeface="monospace"
-            android:textColorHint="@color/colorAccent"
-            android:textColor="@color/colorAccent"
+            android:drawableTint="@color/colorPrimaryDark"
+            android:textColorHint="@color/colorPrimaryDark"
+            android:textColor="@color/colorPrimaryDark"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:textSize="15sp"
+            android:textSize="10sp"
             android:padding="5dp"
             android:layout_weight="70"
             android:layout_gravity="top" />
@@ -49,11 +48,9 @@
 
     </LinearLayout>
 
-
-    <GridView
-        android:layout_marginBottom="20dp"
+    <in.srain.cube.views.GridViewWithHeaderAndFooter
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_below="@+id/topbar"
         android:id="@+id/grid"
         android:scrollbars="vertical"
@@ -62,7 +59,7 @@
         android:stretchMode="columnWidth"
         android:layout_gravity="center" >
 
-    </GridView>
+    </in.srain.cube.views.GridViewWithHeaderAndFooter>
 
 
 </RelativeLayout>

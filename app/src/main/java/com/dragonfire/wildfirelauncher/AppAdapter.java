@@ -1,7 +1,6 @@
 package com.dragonfire.wildfirelauncher;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -12,6 +11,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.List;
+
 
 public class AppAdapter extends BaseAdapter {
 

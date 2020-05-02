@@ -16,7 +16,6 @@
         android:background="#000000"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
-        android:typeface="monospace"
         android:text="App name" />
 
     <View
@@ -31,9 +30,8 @@
         android:drawableLeft="@android:drawable/ic_menu_info_details"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
-        android:textSize="15sp"
+        android:textSize="12sp"
         android:gravity="center_vertical"
-        android:typeface="monospace"
         android:text="App info" />
 
     <View
@@ -48,9 +46,8 @@
         android:drawableLeft="@android:drawable/ic_menu_edit"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
-        android:textSize="15sp"
+        android:textSize="12sp"
         android:gravity="center_vertical"
-        android:typeface="monospace"
         android:text="Edit" />
 
     <View
@@ -65,9 +62,8 @@
         android:drawableLeft="@android:drawable/ic_menu_view"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
-        android:textSize="15sp"
+        android:textSize="12sp"
         android:gravity="center_vertical"
-        android:typeface="monospace"
         android:text="Hide" />
 
     <View
@@ -82,9 +78,8 @@
         android:drawableLeft="@android:drawable/ic_menu_agenda"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
-        android:textSize="15sp"
+        android:textSize="12sp"
         android:gravity="center_vertical"
-        android:typeface="monospace"
         android:text="Lock" />
 
     <View
@@ -99,9 +94,8 @@
         android:drawableLeft="@android:drawable/ic_menu_delete"
         android:drawablePadding="10dp"
         android:paddingRight="20dp"
-        android:textSize="15sp"
+        android:textSize="12sp"
         android:gravity="center_vertical"
-        android:typeface="monospace"
         android:text="Uninstall" />
 
 

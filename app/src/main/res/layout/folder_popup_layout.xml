@@ -16,14 +16,12 @@
         android:background="#000000"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
-        android:typeface="monospace"
         android:text="New Folder" />
 
     <GridView
         android:layout_marginBottom="20dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/folderheader"
         android:id="@+id/foldergrid"
         android:scrollbars="vertical"
         android:background="#FFFFFF"
