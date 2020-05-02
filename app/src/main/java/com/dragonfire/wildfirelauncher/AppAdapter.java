@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -15,12 +16,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.squareup.picasso.Picasso;
-
 import java.util.List;
-
-import androidx.annotation.NonNull;
-import jp.wasabeef.picasso.transformations.CropCircleTransformation;
 
 
 public class AppAdapter extends BaseAdapter {
@@ -81,12 +77,25 @@ public class AppAdapter extends BaseAdapter {
             v = convertView;
         }
 
+        AppObject appObject = appObjectList.get(position);
+
         ImageView icon = v.findViewById(R.id.appicondrawable);
         TextView appname = v.findViewById(R.id.appname);
+        TextView badge = v.findViewById(R.id.badge);
+        appname.setText(appObject.getAppname());
+        icon.setImageBitmap(appObject.getAppicon());
 
-        //icon.setImageDrawable(appObjectList.get(position).getAppicon());
-        appname.setText(appObjectList.get(position).getAppname());
-        icon.setImageBitmap(appObjectList.get(position).getIconBitmap());
+        if(appObject.getNotifcount() == 0) {
+            badge.setVisibility(View.GONE);
+        }
+        else {
+            badge.setVisibility(View.VISIBLE);
+            try {
+                badge.setText(appObject.getNotifcount() + "");
+            } catch(Exception e) {
+                Log.d("VINIT", e.toString());
+            }
+        }
 
         v.setOnTouchListener(new View.OnTouchListener() {
             @Override

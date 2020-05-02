@@ -13,6 +13,7 @@ import in.srain.cube.views.GridViewWithHeaderAndFooter;
 
 import android.annotation.SuppressLint;
 import android.app.AppOpsManager;
+import android.app.Notification;
 import android.app.WallpaperManager;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
@@ -23,6 +24,7 @@ import android.appwidget.AppWidgetProviderInfo;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -32,6 +34,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
@@ -76,7 +79,7 @@ import java.util.Objects;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
-        AppClickListener, AppDragListener, AppLongClickListener, AppActionDownListener {
+        AppClickListener, AppDragListener, AppLongClickListener, AppActionDownListener, NotificationInterface {
 
     private static final int MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 10;
     private GestureDetectorCompat mDetector;
@@ -143,6 +146,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         drawerGridView.addHeaderView(headerview);
         //drawerGridView.addFooterView(footerview);
 
+        new MyNotificationListenerService().setListener(this);
+
+        if(notificationAccessAllowed()) {
+            Toast.makeText(this, "notification access is already allowed", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Toast.makeText(this, "notification access is not allowed", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+            startActivity(intent);
+        }
 
         installedAppList = new ArrayList<>();
         homescreenObjects = new ArrayList<>();
@@ -277,7 +290,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                     if(i>=4)
                                         break;
                                     else {
-                                        tinyicons.add(getBitmapFromDrawable(ao.getAppicon()));
+                                        tinyicons.add(ao.getAppicon());
                                     }
                                     i++;
                                 }
@@ -296,7 +309,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
                                         RelativeLayout.LayoutParams.WRAP_CONTENT);
                                 label.measure(0, 0);       //must call measure!
-                                int label_height = label.getMeasuredHeight(); //get height
                                 int label_width = label.getMeasuredWidth();  //get width
                                 labelparams.topMargin = snap_row * (H/6) + 125;
                                 labelparams.leftMargin = snap_col * (W/5) + 60 - (label_width/2);
@@ -330,7 +342,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         }
                         if(drop_area_empty) { // single app drop
                             final ImageView appicon = new ImageView(getBaseContext());
-                            appicon.setImageDrawable(myapp.getAppicon());
+                            appicon.setImageBitmap(myapp.getAppicon());
 
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                             params.topMargin = snap_row * (H/6);
@@ -489,7 +501,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppLongClicked(AppObject appObject, View clickedView) {
         vb.vibrate(30);
-        Bitmap bitmap = getBitmapFromDrawable(myapp.getAppicon());
+        Bitmap bitmap = myapp.getAppicon();
         Palette p = Palette.from(bitmap).generate();
         String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
         //String popupTextColor = String.format("#%06X", (0xFFFFFF & p.getMutedColor(Color.WHITE)));
@@ -627,7 +639,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             String appname = untreatedapp.activityInfo.loadLabel(getPackageManager()).toString();
             String packagename = untreatedapp.activityInfo.packageName;
             Drawable icon = untreatedapp.activityInfo.loadIcon(getPackageManager());
-            installedAppList.add(new AppObject(appname, packagename, icon));
+            installedAppList.add(new AppObject(appname, packagename, getRoundedBitmapIcon(icon)));
         }
         Collections.sort(installedAppList, new Comparator<AppObject>() {
             @Override
@@ -1051,4 +1063,79 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     }
 
+    private Bitmap getRoundedBitmapIcon(Drawable drawable) {
+        int ICON_SIZE=10;
+        final Bitmap bmp = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+
+        Bitmap output = Bitmap.createBitmap(bmp.getWidth(), bmp.getHeight(), Bitmap.Config.ARGB_8888);
+        canvas.setBitmap(output);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        int radius = Math.min(bmp.getWidth()/2, bmp.getHeight()/2) - ICON_SIZE;
+        canvas.drawCircle(bmp.getWidth()/2, bmp.getHeight()/2, radius, paint);
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(bmp, 0, 0, paint);
+
+        return output;
+    }
+
+    @Override
+    public void onNotificationAdded(Bundle bundle) {
+        String str="";
+        String package_name = bundle.getString("PACKAGE_NAME", "");
+        String title = bundle.getString(Notification.EXTRA_TITLE);
+        String text = bundle.getString(Notification.EXTRA_TEXT);
+        String ticker = bundle.getString("TICKER_TEXT", "");
+
+        str = "notif added: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
+        Log.d("VINIT", str);
+
+        for(AppObject ao : installedAppList) {
+            if(ao.getPackagename().equals(package_name)) {
+                ao.setNotifcount(ao.getNotifcount()+1);
+                break;
+            }
+        }
+        gridAdapter.notifyDataSetChanged();
+
+    }
+
+    @Override
+    public void onNotificationRemoved(Bundle bundle) {
+        String str="";
+        String package_name = bundle.getString("PACKAGE_NAME", "");
+        String title = bundle.getString(Notification.EXTRA_TITLE);
+        String text = bundle.getString(Notification.EXTRA_TEXT);
+        String ticker = bundle.getString("TICKER_TEXT", "");
+
+        str = "notif removed: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
+        Log.d("VINIT", str);
+
+        for(AppObject ao : installedAppList) {
+            if(ao.getPackagename().equals(package_name)) {
+                if(ao.getNotifcount()-1 > 0)
+                    ao.setNotifcount(ao.getNotifcount()-1);
+                else
+                    ao.setNotifcount(0); // adapter will take care of removing the badge
+
+                break;
+            }
+        }
+        gridAdapter.notifyDataSetChanged();
+
+    }
+
+    public boolean notificationAccessAllowed() {
+        ContentResolver contentResolver = getContentResolver();
+        String enabledNotificationListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners");
+        String packageName = getPackageName();
+        if(enabledNotificationListeners.contains(packageName)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 }
