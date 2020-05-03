@@ -3,6 +3,7 @@ package com.dragonfire.wildfirelauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.TaskStackBuilder;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -106,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean homeapplongpressed;
     private boolean sortbyusage = false;
     private LoadInstalledApps appLoader;
+    private boolean scrolling = false;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -125,7 +127,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         final RelativeLayout homescreen = findViewById(R.id.homescreen);
-        //getActiveNotifications();
 
         displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
@@ -146,9 +147,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         drawerGridView = findViewById(R.id.grid);
         LayoutInflater layoutInflater = LayoutInflater.from(this);
         headerview = layoutInflater.inflate(R.layout.drawer_header, null);
-        //footerview = layoutInflater.inflate(R.layout.drawer_footer, null);
         drawerGridView.addHeaderView(headerview);
-        //drawerGridView.addFooterView(footerview);
 
         new MyNotificationListenerService().setListener(this);
 
@@ -214,8 +213,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
-                    int alpha = (int) (255*slideOffset);
-                    bottomSheet.setBackgroundColor(Color.argb(alpha, 255, 255, 255));
+
+                    double ratio = Math.abs((screenHight-(double)bottomSheet.getY())/screenHight);
+                    double alpha = 255 * ratio;
+                    bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+
                 }
                 if(!drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
@@ -254,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-        // Broadcast receiver when packages are installed
+        // Broadcast receiver when packages are installed or uninstalled.
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -500,6 +502,24 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             }
         });
+
+        /*homescreen.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        Log.d("COOK", "scrolling begin");
+                    case MotionEvent.ACTION_MOVE:
+                        scrolling = true;
+                        Log.d("COOK", "scrolling started");
+                    case MotionEvent.ACTION_UP:
+                        scrolling = false;
+                        Log.d("COOK", "scrolling has ended");
+                }
+                return false;
+            }
+        });*/
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
@@ -532,8 +552,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onDown(MotionEvent event) {
+
         return true;
     }
+
 
     @Override
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
@@ -611,15 +633,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
+                Log.d("COOK", peek + "");
                 mBottomSheetBehavior.setPeekHeight(peek);
-                double ratio = (double)peek/screenHight;
+                double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
                 double alpha = 255 * ratio;
                 bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
-
-                if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
-                    drawerExpanded = true;
+                drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED;
             }
         }
+        
         return true;
     }
 
@@ -630,7 +652,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onSingleTapUp(MotionEvent event) {
-        //Log.d(DEBUG_TAG, "onSingleTapUp: " + event.toString());
+
         return true;
     }
 
