@@ -37,10 +37,12 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.provider.Settings;
+import android.service.notification.StatusBarNotification;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
@@ -98,11 +100,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View bottomSheet;
     private View headerview;
     private GridView headergrid;
-    private View footerview;
     private List<HomescreenObject> homescreenObjects;
+    private List<AppObject> first4;
     private Vibrator vb;
     private boolean homeapplongpressed;
     private boolean sortbyusage = false;
+    private LoadInstalledApps appLoader;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -122,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         final RelativeLayout homescreen = findViewById(R.id.homescreen);
+        //getActiveNotifications();
 
         displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
@@ -148,11 +152,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         new MyNotificationListenerService().setListener(this);
 
-        if(notificationAccessAllowed()) {
-            Toast.makeText(this, "notification access is already allowed", Toast.LENGTH_SHORT).show();
-        }
-        else {
-            Toast.makeText(this, "notification access is not allowed", Toast.LENGTH_SHORT).show();
+        if(! notificationAccessAllowed()) {
+            Toast.makeText(this, "Please grant notification permission", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
             startActivity(intent);
         }
@@ -160,8 +161,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         installedAppList = new ArrayList<>();
         homescreenObjects = new ArrayList<>();
         timeSortedApps = new ArrayList<>();
+        first4 = new ArrayList<>();
 
-        getInstalledAppList(); // fill in the installedAppList
+        appLoader = new LoadInstalledApps();
+        appLoader.execute();
 
         searchbar = findViewById(R.id.searchbar);
         gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
@@ -170,6 +173,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         gridAdapter.setmAppActionDownListener(this);
         gridAdapter.setmAppLongClickListener(this);
         drawerGridView.setAdapter(gridAdapter);
+
+        recentappadapter = new AppAdapter(getApplicationContext(), first4);
+        recentappadapter.setmAppClickListener(MainActivity.this);
+        recentappadapter.setmAppDragListener(MainActivity.this);
+        recentappadapter.setmAppActionDownListener(MainActivity.this);
+        recentappadapter.setmAppLongClickListener(MainActivity.this);
+        headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
+        headergrid.setAdapter(recentappadapter);
 
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
@@ -440,8 +451,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         final String[] categories = {"nature", "wildlife", "starry sky", "landscapes", "sexy", "monuments",
         "natural history", "abstract", "amoled", "dark", "neon", "sensual", "lighthouse", "astronomy", "high quality",
         "buildings", "Lingerie", "Summer", "airplanes", "moon", "cute", "dogs", "cats",
-                "gods", "marvel", "bikini", "sports", "india", "hawaii", "winter", "Christmas", "couple", "love",
-                "sweden", "europe", "fashion", "kiss", "romance", "Europe", "trending",
+                "gods", "marvel", "bikini", "sports", "india", "hawaii", "nude", "winter", "Christmas", "couple", "love",
+                "sweden", "europe", "fashion", "kiss", "romance", "Europe", "trending", "underwear", "bra", "blonde",
                 "funny", "quotes", "humor"};
 
         changeWallpaper.setOnClickListener(new View.OnClickListener() {
@@ -554,7 +565,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onAppActionDown(AppObject appObject, View clickedView) {
         myapp = appObject;
         longclickedview = clickedView; // keep track of dragged app object
-
     }
 
     @Override
@@ -628,25 +638,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public boolean dispatchTouchEvent(MotionEvent ev) { // Otherwise the touch and fling won't work together
         super.dispatchTouchEvent(ev);
         return mDetector.onTouchEvent(ev);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
-    private void getInstalledAppList() {
-        Intent intent = new Intent(Intent.ACTION_MAIN, null);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> untreatedApplist = getApplicationContext().getPackageManager().queryIntentActivities(intent, 0);
-        for(ResolveInfo untreatedapp : untreatedApplist) {
-            String appname = untreatedapp.activityInfo.loadLabel(getPackageManager()).toString();
-            String packagename = untreatedapp.activityInfo.packageName;
-            Drawable icon = untreatedapp.activityInfo.loadIcon(getPackageManager());
-            installedAppList.add(new AppObject(appname, packagename, getRoundedBitmapIcon(icon)));
-        }
-        Collections.sort(installedAppList, new Comparator<AppObject>() {
-            @Override
-            public int compare(AppObject o1, AppObject o2) {
-                return o1.getAppname().toLowerCase().compareTo(o2.getAppname().toLowerCase());
-            }
-        });
     }
 
     private AppWidgetManager mAppWidgetManager;
@@ -739,10 +730,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
         @Override
         public void onReceive(Context context, Intent intent) {
-            System.out.println("Broadcast received");
-            installedAppList.clear();
-            getInstalledAppList(); //refill the installed apps list
-            gridAdapter.notifyDataSetChanged();
+            if(intent!=null) {
+                String[] action = Objects.requireNonNull(intent.getAction()).split("\\.");
+                String[] packagearray = Objects.requireNonNull(intent.getData()).toString().split(":");
+                String actionStr = action[action.length-1];
+                String package_name = packagearray[packagearray.length-1];
+                Log.d("COOK", "onReceive action: " + actionStr + ", package: " + package_name);
+
+                if(actionStr.equals("PACKAGE_REMOVED")) {
+                    installedAppList.remove(getAppObjectByPackageName(package_name));
+                    gridAdapter.notifyDataSetChanged();
+                }
+                if(actionStr.equals("PACKAGE_ADDED")) {
+                    installedAppList.clear();
+                    gridAdapter.notifyDataSetChanged();
+                    (new LoadInstalledApps()).execute();
+                }
+            }
         }
     }
 
@@ -760,7 +764,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         super.onPause();
         try {
             //currentDrawerState = BottomSheetBehavior.STATE_COLLAPSED;
-            unregisterReceiver(mPackageListener);
+            //unregisterReceiver(mPackageListener);
         } catch (Exception e) {}
     }
 
@@ -768,28 +772,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     protected void onPostResume() {
         super.onPostResume();
-        sortAppsByTime(); // fill in the timeSortedApps
-
-        List<AppObject> first4 = new ArrayList<>();
-        first4.add(timeSortedApps.get(0));
-        first4.add(timeSortedApps.get(1));
-        first4.add(timeSortedApps.get(2));
-        first4.add(timeSortedApps.get(3));
-
-        recentappadapter = new AppAdapter(getApplicationContext(), first4);
-        recentappadapter.setmAppClickListener(this);
-        recentappadapter.setmAppDragListener(this);
-        recentappadapter.setmAppActionDownListener(this);
-        recentappadapter.setmAppLongClickListener(this);
-        headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
-        headergrid.setAdapter(recentappadapter);
-
         IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_PACKAGE_INSTALL);
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         filter.addDataScheme("package");
         registerReceiver(mPackageListener, filter);
+        Log.d("COOK", "mPackageListener registered");
     }
 
     @Override
@@ -897,9 +887,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 popupWindow.dismiss();
             }
         });
-
         return popupWindow;
-
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -907,6 +895,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         LayoutInflater inflater = (LayoutInflater)
                 getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
+        assert inflater != null;
         View view = inflater.inflate(R.layout.folder_popup_layout, null);
         GridView foldergrid = view.findViewById(R.id.foldergrid);
         AppAdapter foldergridadapter = new AppAdapter(getApplicationContext(), applist);
@@ -965,15 +954,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
     }
 
-    @NonNull
-    private Bitmap getBitmapFromDrawable(@NonNull Drawable drawable) {
-        final Bitmap bmp = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        final Canvas canvas = new Canvas(bmp);
-        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawable.draw(canvas);
-        return bmp;
-    }
-
     private void enableDrag(AppObject ao, View draggedview) {
         ClipData.Item item = new ClipData.Item(ao.getAppname()+"~"+ao.getPackagename()+"~"+ao.getAppicon());
         ClipData dragData = new ClipData(
@@ -988,7 +968,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     private Bitmap generateFolderIcon(ArrayList<Bitmap> bitmaps) {
-        int w = 0, h = 0;
+        int w, h;
         w = 2 * bitmaps.get(0).getWidth();
         h = 2 * bitmaps.get(0).getHeight();
 
@@ -1001,10 +981,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         int top = 0;
         int left = 0;
         for (int i = 0; i < bitmaps.size(); i++) {
-            if(i==0) {
-                top=0; left=0;
-            }
-            else if(i==1) {
+            if(i==1) {
                 top = top+bitmaps.get(i).getHeight();
                 left = left+bitmaps.get(i).getWidth();
             }
@@ -1027,6 +1004,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         timeSortedApps.clear();
         AppOpsManager appOps = (AppOpsManager)
                 getSystemService(Context.APP_OPS_SERVICE);
+        assert appOps != null;
         int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
                 android.os.Process.myUid(), getPackageName());
 
@@ -1057,10 +1035,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-        for(AppObject x : timeSortedApps) {
-            Log.d(TAG, x.getAppname() + " : " + x.getUsagetime());
-        }
-
     }
 
     private Bitmap getRoundedBitmapIcon(Drawable drawable) {
@@ -1074,7 +1048,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         canvas.setBitmap(output);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         int radius = Math.min(bmp.getWidth()/2, bmp.getHeight()/2) - ICON_SIZE;
-        canvas.drawCircle(bmp.getWidth()/2, bmp.getHeight()/2, radius, paint);
+        float cx = (float)bmp.getWidth()/2;
+        float cy = (float)bmp.getHeight()/2;
+        canvas.drawCircle(cx, cy, radius, paint);
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
         canvas.drawBitmap(bmp, 0, 0, paint);
 
@@ -1083,59 +1059,108 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onNotificationAdded(Bundle bundle) {
-        String str="";
         String package_name = bundle.getString("PACKAGE_NAME", "");
         String title = bundle.getString(Notification.EXTRA_TITLE);
         String text = bundle.getString(Notification.EXTRA_TEXT);
         String ticker = bundle.getString("TICKER_TEXT", "");
 
-        str = "notif added: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
+        String str = "notif added: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
         Log.d("VINIT", str);
 
-        for(AppObject ao : installedAppList) {
-            if(ao.getPackagename().equals(package_name)) {
-                ao.setNotifcount(ao.getNotifcount()+1);
-                break;
-            }
+        AppObject app = getAppObjectByPackageName(package_name);
+        if(app!=null) {
+            Log.d("VINIT", app.getAppname() + " notification received");
+            app.setNotifcount(app.getNotifcount()+1);
+            gridAdapter.notifyDataSetChanged();
+            recentappadapter.notifyDataSetChanged();
         }
-        gridAdapter.notifyDataSetChanged();
-
     }
 
     @Override
     public void onNotificationRemoved(Bundle bundle) {
-        String str="";
         String package_name = bundle.getString("PACKAGE_NAME", "");
         String title = bundle.getString(Notification.EXTRA_TITLE);
         String text = bundle.getString(Notification.EXTRA_TEXT);
         String ticker = bundle.getString("TICKER_TEXT", "");
 
-        str = "notif removed: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
+        String str = "notif removed: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
         Log.d("VINIT", str);
 
-        for(AppObject ao : installedAppList) {
-            if(ao.getPackagename().equals(package_name)) {
-                if(ao.getNotifcount()-1 > 0)
-                    ao.setNotifcount(ao.getNotifcount()-1);
-                else
-                    ao.setNotifcount(0); // adapter will take care of removing the badge
-
-                break;
-            }
+        AppObject app = getAppObjectByPackageName(package_name);
+        if(app!=null) {
+            // adapter will take care of removing the badge if required
+            app.setNotifcount(Math.max(app.getNotifcount() - 1, 0));
+            gridAdapter.notifyDataSetChanged();
+            recentappadapter.notifyDataSetChanged();
         }
-        gridAdapter.notifyDataSetChanged();
-
     }
 
     public boolean notificationAccessAllowed() {
         ContentResolver contentResolver = getContentResolver();
         String enabledNotificationListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners");
         String packageName = getPackageName();
-        if(enabledNotificationListeners.contains(packageName)) {
-            return true;
+        return enabledNotificationListeners.contains(packageName);
+    }
+
+    public AppObject getAppObjectByPackageName(String packagename) {
+        AppObject app = null;
+        for(AppObject ao : installedAppList) {
+            if(ao.getPackagename().equals(packagename)) {
+                app = ao;
+                break;
+            }
         }
-        else {
-            return false;
+        return app;
+    }
+
+    private class LoadInstalledApps extends AsyncTask<Void, Void, Void> {
+        Intent intent;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            intent = new Intent(Intent.ACTION_MAIN, null);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
+        @Override
+        protected Void doInBackground(Void... voids) {
+            List<ResolveInfo> untreatedApplist = getApplicationContext().getPackageManager().queryIntentActivities(intent, 0);
+            for(ResolveInfo untreatedapp : untreatedApplist) {
+                String appname = untreatedapp.activityInfo.loadLabel(getPackageManager()).toString();
+                String packagename = untreatedapp.activityInfo.packageName;
+                Drawable icon = untreatedapp.activityInfo.loadIcon(getPackageManager());
+                if(!packagename.equals(getApplicationContext().getPackageName())) {
+                    installedAppList.add(new AppObject(appname, packagename, getRoundedBitmapIcon(icon)));
+                    //publishProgress();
+                }
+            }
+            Collections.sort(installedAppList, new Comparator<AppObject>() {
+                @Override
+                public int compare(AppObject o1, AppObject o2) {
+                    return o1.getAppname().toLowerCase().compareTo(o2.getAppname().toLowerCase());
+                }
+            });
+
+            sortAppsByTime(); // fill in the timeSortedApps
+            first4.add(timeSortedApps.get(0));
+            first4.add(timeSortedApps.get(1));
+            first4.add(timeSortedApps.get(2));
+            first4.add(timeSortedApps.get(3));
+
+            return null;
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+            gridAdapter.notifyDataSetChanged();
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            gridAdapter.notifyDataSetChanged();
+            recentappadapter.notifyDataSetChanged();
         }
     }
 }
