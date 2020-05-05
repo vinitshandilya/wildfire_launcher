@@ -5,25 +5,28 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/grandfather"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:weightSum="100"
         android:orientation="vertical">
 
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/pager"
+        <androidx.viewpager.widget.ViewPager
+            android:id="@+id/vpPager"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:layout_margin="20dp"/>
+            android:layout_margin="20dp"
+            android:layout_height="0dp"
+            android:layout_weight="98" >
+
+        </androidx.viewpager.widget.ViewPager>
 
         <RelativeLayout
-            android:id="@+id/homescreen"
+            android:id="@+id/dock"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="20dp"
-            android:layout_below="@+id/pager"
-            android:layout_gravity="center" >
+            android:layout_height="100dp"
+            android:layout_weight="2"
+            android:background="#20cacaca" >
 
             <ImageView
                 android:id="@+id/changewallpaper"
@@ -33,13 +36,14 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:padding="30dp"
+                android:tint="@color/colorPrimary"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentBottom="true"
                 android:contentDescription="TODO" />
 
         </RelativeLayout>
 
-    </RelativeLayout>
+    </LinearLayout>
 
     <include layout="@layout/app_drawer_layout"/>
 

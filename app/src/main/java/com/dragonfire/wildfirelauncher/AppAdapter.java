@@ -1,11 +1,6 @@
 package com.dragonfire.wildfirelauncher;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -132,7 +127,7 @@ public class AppAdapter extends BaseAdapter {
 
                     default:
                         v.setPressed(false);
-                        return false;
+                        return true;
 
                 }
             }

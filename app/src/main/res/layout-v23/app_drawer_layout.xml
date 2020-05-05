@@ -37,7 +37,7 @@
             android:layout_gravity="top"
             android:autofillHints="@android:string/selectAll"
             android:inputType="text"
-            android:lines="1" />
+            android:lines="1"/>
 
         <ImageView
             android:id="@+id/sortbtn"
