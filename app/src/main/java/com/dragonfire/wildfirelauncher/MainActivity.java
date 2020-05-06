@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         // Define a list of blank pages
         pages = new ArrayList<>();
 
-        BlankPage homepage = BlankPage.newInstance("Home", "Page-1");
+        BlankPage homepage = BlankPage.newInstance("Home", "Page-1", 0);
         homepage.setmFragmentLoadListener(this);
         pages.add(homepage);
 
@@ -141,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         pagerAdapter = new PagerAdapter(getSupportFragmentManager(), 0, pages);
         pager.setAdapter(pagerAdapter);
 
-        BlankPage anotherpage = BlankPage.newInstance("Home", "Page-2");
+        BlankPage anotherpage = BlankPage.newInstance("Home", "Page-2", 1);
         pages.add(anotherpage);
         anotherpage.setmFragmentLoadListener(this);
         pagerAdapter.notifyDataSetChanged();
@@ -331,11 +331,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     @Override
-    public void onFragmentLoaded(View fragmentContainer) {
+    public void onFragmentLoaded(View fragmentContainer, int index) {
         if(fragmentContainer!=null) {
             TextView tv = fragmentContainer.findViewById(R.id.fragtext);
-            Log.d("VINIT", "Fragment loaded: " + tv.getText().toString());
-            prepareTarget(fragmentContainer);
+            Log.d("VINIT", "Fragment loaded: " + tv.getText().toString() + " index: " + index);
+            prepareTarget(fragmentContainer, index);
         }
     }
 
@@ -971,20 +971,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
     }
 
-    private void prepareTarget(final View fragmentContainer) {
+    private void prepareTarget(final View fragmentContainer, final int pageNo) {
         final RelativeLayout homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
-                /*//+----- if icon is dragged to right edge, scroll to next page. Or create a new one ---+//
-                if(event.getX() == 0.0f && event.getY() == 0.0f) {
-                    edgeTouchCount = edgeTouchCount + 1;
-                    if(edgeTouchCount ==3) {
-                        Log.d("VINIT", "X: " + event.getX() + " Y: " + event.getY() + " edgeTouchCount: " + edgeTouchCount);
-                        scrolltoNextPage();
-                    }
-                }*/
-
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
                         return true;
@@ -1008,7 +999,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         final int snap_col = Math.round(cursor_x/(W/5));
 
                         for(final HomescreenObject homescreenObject : homescreenObjects) {
-                            if(snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY()) {
+                            if(snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY() && pageNo == homescreenObject.getPageNo()) {
                                 drop_area_empty=false; // drop area is not empty
                                 homescreenObject.getFolder().add(myapp);
                                 homescreenObject.setDir(true);
@@ -1100,7 +1091,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             homescreen.addView(label, labelparams);
 
                             folder.add(myapp); // wrap single app in a list
-                            final HomescreenObject homescreenObject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label);
+                            final HomescreenObject homescreenObject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, pageNo);
                             homescreenObjects.add(homescreenObject);
 
                             ClipData.Item item = event.getClipData().getItemAt(0);
@@ -1123,7 +1114,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 public boolean onTouch(View v, MotionEvent event) {
                                     switch(event.getAction()) {
                                         case MotionEvent.ACTION_DOWN:
-                                            touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label);
+                                            touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, pageNo);
                                             break;
                                         case MotionEvent.ACTION_MOVE:
                                             if(homeapplongpressed) {
@@ -1167,18 +1158,5 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }
         });
-    }
-
-    private void scrolltoNextPage() {
-        if(pager.getCurrentItem() == pagerAdapter.getCount()-1) {
-            BlankPage nextpage = BlankPage.newInstance("New", "Page");
-            nextpage.setmFragmentLoadListener(this);
-            pages.add(nextpage);
-            pagerAdapter.notifyDataSetChanged();
-            pager.setCurrentItem(pagerAdapter.getCount()-1, true);
-        }
-        pager.setCurrentItem(pagerAdapter.getCount()-1, true);
-
-
     }
 }

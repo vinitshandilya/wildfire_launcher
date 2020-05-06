@@ -10,14 +10,16 @@ public class HomescreenObject {
     private boolean isDir;
     private View icon;
     private View label;
+    private int pageNo;
 
-    public HomescreenObject(List<AppObject> folder, int x, int y, boolean isDir, View icon, View label) {
+    public HomescreenObject(List<AppObject> folder, int x, int y, boolean isDir, View icon, View label, int pageNo) {
         this.folder = folder;
         this.x = x;
         this.y = y;
         this.isDir = isDir;
         this.icon = icon;
         this.label = label;
+        this.pageNo = pageNo;
     }
 
     public List<AppObject> getFolder() {
@@ -54,5 +56,9 @@ public class HomescreenObject {
 
     public void setY(int y) {
         this.y = y;
+    }
+
+    public int getPageNo() {
+        return pageNo;
     }
 }
