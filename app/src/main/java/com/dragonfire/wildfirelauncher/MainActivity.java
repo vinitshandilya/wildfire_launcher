@@ -103,12 +103,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean homeapplongpressed;
     private boolean sortbyusage = false;
     private LoadInstalledApps appLoader;
+    private int edgeTouchCount = 0;
+    private List<BlankPage> pages;
+    private PagerAdapter pagerAdapter;
+    private ViewPager pager;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
 
     AppObject myapp;
-    View longclickedview;
     boolean longclicked;
     HomescreenObject touchedhomescreenobject;
 
@@ -125,23 +128,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
         // Define view pager
-        ViewPager pager = findViewById(R.id.vpPager);
+        pager = findViewById(R.id.vpPager);
 
         // Define a list of blank pages
-        final List<BlankPage> pages = new ArrayList<>();
+        pages = new ArrayList<>();
 
-        BlankPage page1 = BlankPage.newInstance("Vinit", "Shandilya");
-        page1.setmFragmentLoadListener(this);
-        pages.add(page1);
-
-        BlankPage page2 = BlankPage.newInstance("Hello", "World");
-        page2.setmFragmentLoadListener(this);
-        pages.add(page2);
+        BlankPage homepage = BlankPage.newInstance("Home", "Page-1");
+        homepage.setmFragmentLoadListener(this);
+        pages.add(homepage);
 
         // Set up adapter to display the pages created above
-        PagerAdapter pagerAdapter = new PagerAdapter(getSupportFragmentManager(), 0, pages);
+        pagerAdapter = new PagerAdapter(getSupportFragmentManager(), 0, pages);
         pager.setAdapter(pagerAdapter);
 
+        BlankPage anotherpage = BlankPage.newInstance("Home", "Page-2");
+        pages.add(anotherpage);
+        anotherpage.setmFragmentLoadListener(this);
+        pagerAdapter.notifyDataSetChanged();
 
         mDetector = new GestureDetectorCompat(this,this);
 
@@ -328,10 +331,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     @Override
-    public void onFragmentLoaded(View view) {
-        if(view!=null)
-            prepareTarget(view);
-
+    public void onFragmentLoaded(View fragmentContainer) {
+        if(fragmentContainer!=null) {
+            TextView tv = fragmentContainer.findViewById(R.id.fragtext);
+            Log.d("VINIT", "Fragment loaded: " + tv.getText().toString());
+            prepareTarget(fragmentContainer);
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
@@ -966,11 +971,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
     }
 
-    private void prepareTarget(View view) {
-        final RelativeLayout homescreen = view.findViewById(R.id.fragmentxml);
+    private void prepareTarget(final View fragmentContainer) {
+        final RelativeLayout homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
+                /*//+----- if icon is dragged to right edge, scroll to next page. Or create a new one ---+//
+                if(event.getX() == 0.0f && event.getY() == 0.0f) {
+                    edgeTouchCount = edgeTouchCount + 1;
+                    if(edgeTouchCount ==3) {
+                        Log.d("VINIT", "X: " + event.getX() + " Y: " + event.getY() + " edgeTouchCount: " + edgeTouchCount);
+                        scrolltoNextPage();
+                    }
+                }*/
+
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
                         return true;
@@ -1153,5 +1167,18 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }
         });
+    }
+
+    private void scrolltoNextPage() {
+        if(pager.getCurrentItem() == pagerAdapter.getCount()-1) {
+            BlankPage nextpage = BlankPage.newInstance("New", "Page");
+            nextpage.setmFragmentLoadListener(this);
+            pages.add(nextpage);
+            pagerAdapter.notifyDataSetChanged();
+            pager.setCurrentItem(pagerAdapter.getCount()-1, true);
+        }
+        pager.setCurrentItem(pagerAdapter.getCount()-1, true);
+
+
     }
 }
