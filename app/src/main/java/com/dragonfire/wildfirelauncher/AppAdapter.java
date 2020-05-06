@@ -23,6 +23,7 @@ public class AppAdapter extends BaseAdapter {
     private AppActionDownListener mAppActionDownListener;
     private AppDragListener mAppDragListener;
     private long t1=0, t2=0;
+    private String TAG = "VINIT";
 
     void setmAppActionDownListener(AppActionDownListener mAppActionDownListener) {
         this.mAppActionDownListener = mAppActionDownListener;
@@ -72,7 +73,7 @@ public class AppAdapter extends BaseAdapter {
             v = convertView;
         }
 
-        AppObject appObject = appObjectList.get(position);
+        final AppObject appObject = appObjectList.get(position);
 
         ImageView icon = v.findViewById(R.id.appicondrawable);
         TextView appname = v.findViewById(R.id.appname);
@@ -92,55 +93,52 @@ public class AppAdapter extends BaseAdapter {
             }
         }
 
-        v.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent ev) {
-                switch (ev.getAction() & MotionEvent.ACTION_MASK) {
-                    case MotionEvent.ACTION_DOWN:
-                        //Log.d("Cook", "Action down: " + ev.getAction());
-                        v.setPressed(true);
-                        if(mAppActionDownListener != null) {
-                            mAppActionDownListener.onAppActionDown(appObjectList.get(position), v);
-                        }
-                        t1 = System.currentTimeMillis();
-                        return false;
-
-                    case MotionEvent.ACTION_UP:
-                        //Log.d("Cook", "Action up: " + ev.getAction());
-                        v.setPressed(false);
-                        t2 = System.currentTimeMillis();
-                        if(Math.abs(t2-t1) < ViewConfiguration.getLongPressTimeout()) {
-                            if(mAppClickListener!=null) {
-                                mAppClickListener.onAppClicked(appObjectList.get(position), v);
-                            }
-                        }
-
-                        return true;
-
-                    case MotionEvent.ACTION_MOVE:
-                        v.setPressed(false);
-                        //Log.d("Cook", "Action move: " + ev.getAction());
-                        if(mAppDragListener!=null) {
-                            mAppDragListener.onAppDragged(appObjectList.get(position), v);
-                        }
-                        return true;
-
-                    default:
-                        v.setPressed(false);
-                        return true;
-
-                }
-            }
-        });
-
         v.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                //Toast.makeText(context, "Long clicked on " + appObjectList.get(position).getAppname(), Toast.LENGTH_SHORT).show();
-                if(mAppLongClickListener!=null) {
-                    mAppLongClickListener.onAppLongClicked(appObjectList.get(position), v);
-                }
-                return false;
+                v.getParent().requestDisallowInterceptTouchEvent(true); // LOCK THE DRAWER FIRST
+                Log.d(TAG, "LONG CLICK ON " + appObject.getAppname());
+                mAppLongClickListener.onAppLongClicked(appObject, v);
+
+                //+------- set touch listener -----+//
+                v.setOnTouchListener(new View.OnTouchListener() {
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        switch(event.getAction()) {
+
+                            case MotionEvent.ACTION_DOWN:
+                                Log.d(TAG, "ACTION DOWN " + appObject.getAppname());
+                                return false;
+
+                            case MotionEvent.ACTION_MOVE:
+                                Log.d(TAG, "ACTION MOVE " + appObject.getAppname());
+                                mAppDragListener.onAppDragged(appObject, v);
+                                return true;
+
+                            case MotionEvent.ACTION_UP:
+                                Log.d(TAG, "ACTION UP " + appObject.getAppname());
+                                v.setOnTouchListener(null);
+                                return true;
+
+                            case MotionEvent.ACTION_CANCEL:
+                                Log.d(TAG, "ACTION CANCEL " + appObject.getAppname());
+                                v.setOnTouchListener(null);
+                                return true;
+
+                            default:
+                                return false;
+
+                        }
+                    }
+                });
+                return true; // END OF LONG CLICK LISTENER
+            }
+        });
+
+        v.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mAppClickListener.onAppClicked(appObject, v);
             }
         });
 

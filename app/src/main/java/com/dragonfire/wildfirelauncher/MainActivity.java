@@ -357,7 +357,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onAppDragged(AppObject appObject, View clickedView) {
-        Log.d("COOK", "onAppDragged " + appObject.getAppname());
         myapp = appObject;
         enableDrag(appObject, clickedView); //build shadow, tag dragged data
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
@@ -456,8 +455,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
-        //Log.d("COOK", "event1: " + event1.getAction() + " event2: " + event2.getAction()
-        //+ " distX: " + distanceX + " distY: " + distanceY);
         int peek = (int) (screenHight - event2.getY());
         if(drawerExpanded) {
             hideKeypad();
@@ -585,7 +582,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 String[] packagearray = Objects.requireNonNull(intent.getData()).toString().split(":");
                 String actionStr = action[action.length-1];
                 String package_name = packagearray[packagearray.length-1];
-                Log.d("COOK", "onReceive action: " + actionStr + ", package: " + package_name);
 
                 if(actionStr.equals("PACKAGE_REMOVED")) {
                     installedAppList.remove(getAppObjectByPackageName(package_name));
@@ -629,7 +625,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         filter.addDataScheme("package");
         registerReceiver(mPackageListener, filter);
-        Log.d("COOK", "mPackageListener registered");
     }
 
     @Override
@@ -994,11 +989,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onDrag(View v, DragEvent event) {
                 switch(event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d("COOK", "ACTION_DRAG_STARTED");
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d("COOK", "ACTION_DRAG_ENTERED");
                         try {
                             popupWindow.dismiss();
                         }
@@ -1006,7 +999,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DROP:
-                        Log.d("COOK", "ACTION_DROP");
                         longclicked = false;
                         boolean drop_area_empty = true;
                         final List<AppObject> folder = new ArrayList<>();
