@@ -3,13 +3,9 @@ package com.dragonfire.wildfirelauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.TaskStackBuilder;
 import androidx.core.view.GestureDetectorCompat;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.palette.graphics.Palette;
 import androidx.viewpager.widget.ViewPager;
-import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 import in.srain.cube.views.GridViewWithHeaderAndFooter;
 
@@ -44,7 +40,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.provider.Settings;
-import android.service.notification.StatusBarNotification;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
@@ -83,7 +78,7 @@ import java.util.Objects;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
-        AppClickListener, AppDragListener, AppLongClickListener, AppActionDownListener, NotificationInterface, FragmentLoadListener {
+        AppClickListener, AppDragListener, AppLongClickListener, NotificationInterface, FragmentLoadListener {
 
     private static final int MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 10;
     private GestureDetectorCompat mDetector;
@@ -179,14 +174,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         gridAdapter = new AppAdapter(getApplicationContext(), installedAppList);
         gridAdapter.setmAppClickListener(this);
         gridAdapter.setmAppDragListener(this);
-        gridAdapter.setmAppActionDownListener(this);
         gridAdapter.setmAppLongClickListener(this);
         drawerGridView.setAdapter(gridAdapter);
 
         recentappadapter = new AppAdapter(getApplicationContext(), first4);
         recentappadapter.setmAppClickListener(MainActivity.this);
         recentappadapter.setmAppDragListener(MainActivity.this);
-        recentappadapter.setmAppActionDownListener(MainActivity.this);
         recentappadapter.setmAppLongClickListener(MainActivity.this);
         headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
         headergrid.setAdapter(recentappadapter);
@@ -255,7 +248,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 gridAdapter.setmAppClickListener(MainActivity.this);
                 gridAdapter.setmAppLongClickListener(MainActivity.this);
                 gridAdapter.setmAppDragListener(MainActivity.this);
-                gridAdapter.setmAppActionDownListener(MainActivity.this);
 
                 for(AppObject currentApp : installedAppList) {
                     if(currentApp.getAppname().toLowerCase().contains(s.toString().toLowerCase())) {
@@ -329,7 +321,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 gridAdapter.setmAppClickListener(MainActivity.this);
                 gridAdapter.setmAppLongClickListener(MainActivity.this);
                 gridAdapter.setmAppDragListener(MainActivity.this);
-                gridAdapter.setmAppActionDownListener(MainActivity.this);
 
             }
         });
@@ -347,12 +338,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppClicked(AppObject appObject, View clickedView) {
         launchApp(appObject.getPackagename());
-    }
-
-    @Override
-    public void onAppActionDown(AppObject appObject, View clickedView) {
-        myapp = appObject;
-        longclickedview = clickedView; // keep track of dragged app object
     }
 
     @Override
@@ -719,7 +704,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         AppAdapter foldergridadapter = new AppAdapter(getApplicationContext(), applist);
         foldergridadapter.setmAppClickListener(this);
         foldergridadapter.setmAppDragListener(this);
-        foldergridadapter.setmAppActionDownListener(this);
         foldergridadapter.setmAppLongClickListener(this);
         foldergrid.setAdapter(foldergridadapter);
 
@@ -1155,7 +1139,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                     return false;
                                 }
                             });
-
                         }
 
                         return true;

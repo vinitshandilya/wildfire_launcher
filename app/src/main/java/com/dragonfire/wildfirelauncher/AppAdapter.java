@@ -5,7 +5,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
@@ -20,14 +19,8 @@ public class AppAdapter extends BaseAdapter {
     private List<AppObject> appObjectList;
     private AppClickListener mAppClickListener;
     private AppLongClickListener mAppLongClickListener;
-    private AppActionDownListener mAppActionDownListener;
     private AppDragListener mAppDragListener;
-    private long t1=0, t2=0;
     private String TAG = "VINIT";
-
-    void setmAppActionDownListener(AppActionDownListener mAppActionDownListener) {
-        this.mAppActionDownListener = mAppActionDownListener;
-    }
 
     void setmAppLongClickListener(AppLongClickListener mAppLongClickListener) {
         this.mAppLongClickListener = mAppLongClickListener;
