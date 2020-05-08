@@ -90,7 +90,7 @@ public class AppAdapter extends BaseAdapter {
             @Override
             public boolean onLongClick(View v) {
                 v.getParent().requestDisallowInterceptTouchEvent(true); // LOCK THE DRAWER FIRST
-                Log.d(TAG, "LONG CLICK ON " + appObject.getAppname());
+                //Log.d(TAG, "LONG CLICK ON " + appObject.getAppname());
                 mAppLongClickListener.onAppLongClicked(appObject, v);
 
                 //+------- set touch listener -----+//
@@ -100,21 +100,21 @@ public class AppAdapter extends BaseAdapter {
                         switch(event.getAction()) {
 
                             case MotionEvent.ACTION_DOWN:
-                                Log.d(TAG, "ACTION DOWN " + appObject.getAppname());
+                                //Log.d(TAG, "ACTION DOWN " + appObject.getAppname());
                                 return false;
 
                             case MotionEvent.ACTION_MOVE:
-                                Log.d(TAG, "ACTION MOVE " + appObject.getAppname());
-                                mAppDragListener.onAppDragged(appObject, v);
+                                //Log.d(TAG, "ACTION MOVE " + appObject.getAppname());
+                                mAppDragListener.onAppDragged(appObject, v, event);
                                 return true;
 
                             case MotionEvent.ACTION_UP:
-                                Log.d(TAG, "ACTION UP " + appObject.getAppname());
+                                //Log.d(TAG, "ACTION UP " + appObject.getAppname());
                                 v.setOnTouchListener(null);
                                 return true;
 
                             case MotionEvent.ACTION_CANCEL:
-                                Log.d(TAG, "ACTION CANCEL " + appObject.getAppname());
+                                //Log.d(TAG, "ACTION CANCEL " + appObject.getAppname());
                                 v.setOnTouchListener(null);
                                 return true;
 
