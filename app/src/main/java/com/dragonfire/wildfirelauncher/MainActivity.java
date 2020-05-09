@@ -96,20 +96,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private PopupWindow popupWindow;
     private PopupWindow folderpopupwindow;
     private View bottomSheet;
-    private View headerview;
-    private GridView headergrid;
     private List<HomescreenObject> homescreenObjects;
     private List<AppObject> first4;
     private Vibrator vb;
     private boolean homeapplongpressed;
     private boolean sortbyusage = false;
-    private LoadInstalledApps appLoader;
     private float edge = 0.0f;
     private List<BlankPage> pages;
     private PagerAdapter pagerAdapter;
     private ViewPager pager;
     private boolean dragentered = false;
-    private boolean newpagereqd = false;
     private boolean dropped = false;
     private boolean dockentered = false;
     private RelativeLayout dock;
@@ -158,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         drawerGridView = findViewById(R.id.grid);
         LayoutInflater layoutInflater = LayoutInflater.from(this);
-        headerview = layoutInflater.inflate(R.layout.drawer_header, null);
+        View headerview = layoutInflater.inflate(R.layout.drawer_header, null);
         drawerGridView.addHeaderView(headerview);
 
         new MyNotificationListenerService().setListener(this);
@@ -174,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         timeSortedApps = new ArrayList<>();
         first4 = new ArrayList<>();
 
-        appLoader = new LoadInstalledApps();
+        LoadInstalledApps appLoader = new LoadInstalledApps();
         appLoader.execute();
 
         searchbar = findViewById(R.id.searchbar);
@@ -188,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         recentappadapter.setmAppClickListener(MainActivity.this);
         recentappadapter.setmAppDragListener(MainActivity.this);
         recentappadapter.setmAppLongClickListener(MainActivity.this);
-        headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
+        GridView headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
         headergrid.setAdapter(recentappadapter);
 
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
@@ -1010,8 +1006,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         dragentered = true;
                         dropped = false;
                         Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENTERED");
-                        Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
-                                ", dragentered: " + dragentered + ", dropped: " + dropped);
+                        /*Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
+                                ", dragentered: " + dragentered + ", dropped: " + dropped);*/
 
                         if (event.getX() == 0 && event.getY() == 0 && dragentered && !dropped) { // condition to check finger dragged to screen edge
                             //newpagereqd = currPageindex == pages.size() - 1;
@@ -1022,6 +1018,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         handler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
+                                vb.vibrate(20);
                                 if(dockentered) {
                                     Log.d("VINIT", "Add items to dock");
                                     prepareDock();
@@ -1332,7 +1329,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             appicon.setImageBitmap(myapp.getAppicon());
 
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
-                            params.topMargin = snap_row * (H);
+                            params.topMargin = dock.getHeight()/2 - 60;
                             params.leftMargin = snap_col * (W / 5);
                             dock.addView(appicon, params);
 
@@ -1347,7 +1344,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             label.measure(0, 0);       //must call measure!
                             int label_height = label.getMeasuredHeight(); //get height
                             int label_width = label.getMeasuredWidth();  //get width
-                            labelparams.topMargin = snap_row * (H) + 125;
+                            labelparams.topMargin = dock.getHeight()/2 - 60 + 125;
                             labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2);
                             dock.addView(label, labelparams);
 
