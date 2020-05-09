@@ -1279,7 +1279,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 }
                                 folderview.setImageBitmap(generateFolderIcon(tinyicons));
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
-                                params.topMargin = snap_row * (H);
+                                params.topMargin = dock.getHeight()/2 - 60;
                                 params.leftMargin = snap_col * (W / 5);
                                 dock.addView(folderview, params);
 
@@ -1293,7 +1293,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                         RelativeLayout.LayoutParams.WRAP_CONTENT);
                                 label.measure(0, 0);       //must call measure!
                                 int label_width = label.getMeasuredWidth();  //get width
-                                labelparams.topMargin = snap_row * (H) + 125;
+                                labelparams.topMargin = dock.getHeight()/2 - 60 + 125;
                                 labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2);
                                 dock.addView(label, labelparams);
 
