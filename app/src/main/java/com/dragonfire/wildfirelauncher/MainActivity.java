@@ -38,6 +38,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.text.Editable;
@@ -110,6 +111,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean dragentered = false;
     private boolean newpagereqd = false;
     private boolean dropped = false;
+    private boolean dockentered = false;
+    private RelativeLayout dock;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -129,6 +132,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         screenHight = displaymetrics.heightPixels;
         screenWidth = displaymetrics.widthPixels;
         vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        // Get launcher dock
+        dock = findViewById(R.id.dock);
 
         // Define view pager
         pager = findViewById(R.id.vpPager);
@@ -367,6 +373,32 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         popupWindow = setPopupWindow(popupBg);
         popupWindow.showAsDropDown(clickedView);
         longclicked=true;
+
+        dock.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch (event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        Log.d("VINIT", "DOCK: ACTION_DRAG_STARTED");
+                        return true;
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        Log.d("VINIT", "DOCK: ACTION_DRAG_ENTERED");
+                        dockentered = true;
+                        return true;
+                    case DragEvent.ACTION_DRAG_EXITED:
+                        Log.d("VINIT", "DOCK: ACTION_DRAG_EXITED");
+                        dockentered = false;
+                        return true;
+                    case DragEvent.ACTION_DRAG_ENDED:
+                        Log.d("VINIT", "DOCK: ACTION_DRAG_ENDED");
+                        dockentered = false;
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        });
+
     }
 
     // Gesture intercept
@@ -969,17 +1001,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             @Override
             public boolean onDrag(View v, DragEvent event) {
 
-                if (event.getX() == 0 && event.getY() == 0 && dragentered && !dropped) { // condition to check finger dragged to screen edge
-                    newpagereqd = currPageindex == pages.size() - 1;
-                    dragentered = false;
-                }
-
-                if(newpagereqd && !dropped) {
-                    Log.d("VINIT", "current index: " + currPageindex +
-                            ", dragentered: " + dragentered + ", new page required: " + newpagereqd + " dropped: " + dropped);
-                    scrollToNextPage(currPageindex);
-                }
-
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
                         Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_STARTED");
@@ -989,6 +1010,29 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         dragentered = true;
                         dropped = false;
                         Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENTERED");
+                        Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
+                                ", dragentered: " + dragentered + ", dropped: " + dropped);
+
+                        if (event.getX() == 0 && event.getY() == 0 && dragentered && !dropped) { // condition to check finger dragged to screen edge
+                            //newpagereqd = currPageindex == pages.size() - 1;
+                            dragentered = false;
+                        }
+
+                        final Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                if(dockentered) {
+                                    Log.d("VINIT", "Add items to dock");
+                                    prepareDock();
+                                }
+                                else {
+                                    if(!dropped) scrollToNextPage(currPageindex);
+                                }
+                            }
+                        }, 1000);
+
+
                         try {
                             popupWindow.dismiss();
                         } catch (Exception e) {
@@ -1174,8 +1218,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     public void scrollToNextPage(int currentindex) {
         dropped = true;
-        newpagereqd = false;
-
+        //newpagereqd = false;
         if(currentindex == pages.size()-1) {
             int pageno = currentindex + 2;
             BlankPage anotherpage = BlankPage.newInstance("New", "Page-" + pageno, currentindex + 1);
@@ -1187,6 +1230,199 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
 
 
+
+    }
+
+    public void prepareDock() {
+
+        dock.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch (event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_STARTED");
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_ENTERED:
+
+                        return true;
+
+                    case DragEvent.ACTION_DROP:
+                        Log.d("VINIT", "prepareDock: " + "ACTION_DROP");
+                        longclicked = false;
+                        boolean drop_area_empty = true;
+                        final List<AppObject> folder = new ArrayList<>();
+                        int W = dock.getWidth();
+                        int H = dock.getHeight();
+                        int cursor_x = (int) event.getX();
+                        int cursor_y = (int) event.getY();
+                        final int snap_row = Math.round(cursor_y / (H));
+                        final int snap_col = Math.round(cursor_x / (W / 5));
+
+                        for (final HomescreenObject homescreenObject : homescreenObjects) {
+                            if (snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY()) {
+                                drop_area_empty = false; // drop area is not empty
+                                homescreenObject.getFolder().add(myapp);
+                                homescreenObject.setDir(true);
+
+                                dock.removeView(homescreenObject.getIcon());
+                                dock.removeView(homescreenObject.getLabel());
+                                final ImageView folderview = new ImageView(getBaseContext());
+
+                                ArrayList<Bitmap> tinyicons = new ArrayList<>();
+
+                                int i = 0;
+                                for (AppObject ao : homescreenObject.getFolder()) {
+                                    if (i >= 4)
+                                        break;
+                                    else {
+                                        tinyicons.add(ao.getAppicon());
+                                    }
+                                    i++;
+                                }
+                                folderview.setImageBitmap(generateFolderIcon(tinyicons));
+                                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                                params.topMargin = snap_row * (H);
+                                params.leftMargin = snap_col * (W / 5);
+                                dock.addView(folderview, params);
+
+                                // Add label
+                                TextView label = new TextView(getBaseContext());
+                                label.setText("New folder");
+                                label.setSingleLine();
+                                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                                label.setTextColor(Color.WHITE);
+                                RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                        RelativeLayout.LayoutParams.WRAP_CONTENT);
+                                label.measure(0, 0);       //must call measure!
+                                int label_width = label.getMeasuredWidth();  //get width
+                                labelparams.topMargin = snap_row * (H) + 125;
+                                labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2);
+                                dock.addView(label, labelparams);
+
+                                folderview.setOnClickListener(new View.OnClickListener() {
+                                    @RequiresApi(api = Build.VERSION_CODES.M)
+                                    @Override
+                                    public void onClick(View v) {
+                                        if (touchedhomescreenobject != null) {
+                                            folderpopupwindow = setFolderPopup(homescreenObject.getFolder());
+                                            folderpopupwindow.showAsDropDown(v);
+                                        }
+
+                                    }
+                                });
+
+                                // Enable drag on folder icon once added on homescreen
+                                folderview.setOnTouchListener(new View.OnTouchListener() {
+                                    @Override
+                                    public boolean onTouch(View v, MotionEvent event) {
+                                        switch (event.getAction()) {
+                                            case MotionEvent.ACTION_DOWN:
+                                                touchedhomescreenobject = homescreenObject;
+                                        }
+                                        return false;
+                                    }
+                                });
+
+                                break;
+                            }
+                        }
+                        if (drop_area_empty) { // single app drop
+                            final ImageView appicon = new ImageView(getBaseContext());
+                            appicon.setImageBitmap(myapp.getAppicon());
+
+                            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                            params.topMargin = snap_row * (H);
+                            params.leftMargin = snap_col * (W / 5);
+                            dock.addView(appicon, params);
+
+                            // Add label
+                            final TextView label = new TextView(getBaseContext());
+                            label.setText(myapp.getAppname());
+                            label.setSingleLine();
+                            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                            label.setTextColor(Color.WHITE);
+                            RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT);
+                            label.measure(0, 0);       //must call measure!
+                            int label_height = label.getMeasuredHeight(); //get height
+                            int label_width = label.getMeasuredWidth();  //get width
+                            labelparams.topMargin = snap_row * (H) + 125;
+                            labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2);
+                            dock.addView(label, labelparams);
+
+                            folder.add(myapp); // wrap single app in a list
+                            final HomescreenObject homescreenObject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, 0);
+                            homescreenObjects.add(homescreenObject);
+
+                            ClipData.Item item = event.getClipData().getItemAt(0);
+                            final String dragData = item.getText().toString();
+                            final String[] app = dragData.split("~");
+                            appicon.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    if (touchedhomescreenobject != null) {
+                                        launchApp(app[1]); // launch app from package name
+                                    }
+
+                                }
+                            });
+
+                            // Enable drag on icon once added on homescreen
+                            appicon.setOnTouchListener(new View.OnTouchListener() {
+                                @SuppressLint("ClickableViewAccessibility")
+                                @Override
+                                public boolean onTouch(View v, MotionEvent event) {
+                                    switch (event.getAction()) {
+                                        case MotionEvent.ACTION_DOWN:
+                                            touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, 0);
+                                            break;
+                                        case MotionEvent.ACTION_MOVE:
+                                            if (homeapplongpressed) {
+                                                ClipData.Item item = new ClipData.Item(myapp.getAppname() + "~" + myapp.getPackagename() + "~" + myapp.getAppicon());
+                                                ClipData dragData = new ClipData(
+                                                        (CharSequence) v.getTag(),
+                                                        new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                                                        item);
+                                                v.startDrag(dragData,  // the data to be dragged
+                                                        new View.DragShadowBuilder(v),  // the drag shadow builder
+                                                        null,      // no need to use local data
+                                                        0          // flags (not currently used, set to 0)
+                                                );
+
+                                                dock.removeView(v);
+                                                dock.removeView(label);
+
+                                                for (HomescreenObject hso : homescreenObjects) {
+                                                    if (hso.getX() == snap_col && hso.getY() == snap_row) {
+                                                        homescreenObjects.remove(hso);
+                                                        break;
+                                                    }
+                                                }
+                                                homeapplongpressed = false;
+                                            }
+                                    }
+                                    return false;
+                                }
+                            });
+                        }
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_ENDED:
+                        dropped = true;
+                        dockentered = false;
+                        Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_ENDED");
+                        return true;
+
+                    default:
+                        return false;
+
+
+
+                }
+            }
+        });
 
     }
 
