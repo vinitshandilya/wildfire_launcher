@@ -109,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean dropped = false;
     private boolean dockentered = false;
     private RelativeLayout dock;
+    private boolean edgetouched = false;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -375,18 +376,18 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onDrag(View v, DragEvent event) {
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d("VINIT", "DOCK: ACTION_DRAG_STARTED");
+                        //Log.d("VINIT", "DOCK: ACTION_DRAG_STARTED");
                         return true;
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d("VINIT", "DOCK: ACTION_DRAG_ENTERED");
+                        //Log.d("VINIT", "DOCK: ACTION_DRAG_ENTERED");
                         dockentered = true;
                         return true;
                     case DragEvent.ACTION_DRAG_EXITED:
-                        Log.d("VINIT", "DOCK: ACTION_DRAG_EXITED");
+                        //Log.d("VINIT", "DOCK: ACTION_DRAG_EXITED");
                         dockentered = false;
                         return true;
                     case DragEvent.ACTION_DRAG_ENDED:
-                        Log.d("VINIT", "DOCK: ACTION_DRAG_ENDED");
+                        //Log.d("VINIT", "DOCK: ACTION_DRAG_ENDED");
                         dockentered = false;
                         return true;
                     default:
@@ -995,40 +996,43 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         final RelativeLayout homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
-            public boolean onDrag(View v, DragEvent event) {
+            public boolean onDrag(View v, final DragEvent event) {
+                dragentered = true;
+                dropped = false;
+
+                if(event.getX() == 0.0)
+                    edgetouched = true;
+                else
+                    edgetouched = false;
 
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_STARTED");
+                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_STARTED");
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        dragentered = true;
-                        dropped = false;
-                        Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENTERED");
-                        /*Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
-                                ", dragentered: " + dragentered + ", dropped: " + dropped);*/
-
+                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENTERED");
                         if (event.getX() == 0 && event.getY() == 0 && dragentered && !dropped) { // condition to check finger dragged to screen edge
-                            //newpagereqd = currPageindex == pages.size() - 1;
                             dragentered = false;
+                            final Handler handler = new Handler();
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    vb.vibrate(20);
+                                    Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
+                                            ", dragentered: " + dragentered + ", dockentered: " + dockentered + ", dropped: " + dropped);
+                                    if(dockentered) {
+                                        prepareDock();
+                                    }
+                                    else {
+                                        if(!dropped && edgetouched) {
+                                            scrollToNextPage(currPageindex);
+                                            edgetouched = false;
+                                        }
+                                    }
+                                }
+                            }, 1000);
                         }
-
-                        final Handler handler = new Handler();
-                        handler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                vb.vibrate(20);
-                                if(dockentered) {
-                                    Log.d("VINIT", "Add items to dock");
-                                    prepareDock();
-                                }
-                                else {
-                                    if(!dropped) scrollToNextPage(currPageindex);
-                                }
-                            }
-                        }, 1000);
-
 
                         try {
                             popupWindow.dismiss();
@@ -1037,7 +1041,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DROP:
-                        Log.d("VINIT", "prepareTarget: " + "ACTION_DROP");
+                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DROP");
                         dropped = true;
                         pager.setCurrentItem(currPageindex, false);
                         longclicked = false;
@@ -1202,7 +1206,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                     case DragEvent.ACTION_DRAG_ENDED:
                         dropped = true;
-                        Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENDED");
+                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENDED");
                         return true;
 
                     default:
@@ -1237,7 +1241,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onDrag(View v, DragEvent event) {
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_STARTED");
+                        //Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_STARTED");
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
@@ -1245,7 +1249,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DROP:
-                        Log.d("VINIT", "prepareDock: " + "ACTION_DROP");
+                        //Log.d("VINIT", "prepareDock: " + "ACTION_DROP");
                         longclicked = false;
                         boolean drop_area_empty = true;
                         final List<AppObject> folder = new ArrayList<>();
@@ -1409,7 +1413,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     case DragEvent.ACTION_DRAG_ENDED:
                         dropped = true;
                         dockentered = false;
-                        Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_ENDED");
+                        //Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_ENDED");
                         return true;
 
                     default:
