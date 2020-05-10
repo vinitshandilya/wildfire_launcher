@@ -1305,7 +1305,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 label.measure(0, 0);       //must call measure!
                                 int label_width = label.getMeasuredWidth();  //get width
                                 labelparams.topMargin = dock.getHeight()/2 - 60 + 125;
-                                labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2) + 10;
+                                labelparams.leftMargin = snap_col * (W / 5) + (W/10) - (label_width/2);
                                 dock.addView(label, labelparams);
 
                                 folderview.setOnClickListener(new View.OnClickListener() {
