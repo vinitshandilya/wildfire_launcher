@@ -363,6 +363,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppLongClicked(AppObject appObject, View clickedView) {
         myapp = appObject;
+        Log.d("VINIT", "vibrate onAppLongClicked");
         vb.vibrate(15);
         Bitmap bitmap = myapp.getAppicon();
         Palette p = Palette.from(bitmap).generate();
@@ -444,6 +445,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onLongPress(MotionEvent event) {
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
                 currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
+            Log.d("VINIT", "vibrate onLongPress");
             vb.vibrate(30);
             if(touchedhomescreenobject!=null) {
                 if(touchedhomescreenobject.getFolder().size()==1) { // home screen icon long clicked
@@ -999,11 +1001,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onDrag(View v, final DragEvent event) {
                 dragentered = true;
                 dropped = false;
-
-                if(event.getX() == 0.0)
-                    edgetouched = true;
-                else
-                    edgetouched = false;
+                edgetouched = event.getX() == 0.0;
 
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
@@ -1018,14 +1016,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             handler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
-                                    vb.vibrate(20);
+                                    Log.d("VINIT", "vibrate handler");
                                     Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
                                             ", dragentered: " + dragentered + ", dockentered: " + dockentered + ", dropped: " + dropped);
                                     if(dockentered) {
+                                        vb.vibrate(20);
                                         prepareDock();
                                     }
                                     else {
                                         if(!dropped && edgetouched) {
+                                            vb.vibrate(20);
                                             scrollToNextPage(currPageindex);
                                             edgetouched = false;
                                         }
@@ -1046,6 +1046,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         pager.setCurrentItem(currPageindex, false);
                         longclicked = false;
                         boolean drop_area_empty = true;
+                        dock.setOnTouchListener(null);
+                        homescreen.setOnTouchListener(null);
+
                         final List<AppObject> folder = new ArrayList<>();
                         int W = homescreen.getWidth();
                         int H = homescreen.getHeight();
@@ -1284,7 +1287,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 folderview.setImageBitmap(generateFolderIcon(tinyicons));
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                                 params.topMargin = dock.getHeight()/2 - 60;
-                                params.leftMargin = snap_col * (W / 5);
+                                params.leftMargin = snap_col * (W / 5) + 10;
                                 dock.addView(folderview, params);
 
                                 // Add label
@@ -1298,7 +1301,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 label.measure(0, 0);       //must call measure!
                                 int label_width = label.getMeasuredWidth();  //get width
                                 labelparams.topMargin = dock.getHeight()/2 - 60 + 125;
-                                labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2);
+                                labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2) + 10;
                                 dock.addView(label, labelparams);
 
                                 folderview.setOnClickListener(new View.OnClickListener() {
@@ -1334,7 +1337,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                             params.topMargin = dock.getHeight()/2 - 60;
-                            params.leftMargin = snap_col * (W / 5);
+                            params.leftMargin = snap_col * (W / 5) + 10;
                             dock.addView(appicon, params);
 
                             // Add label
@@ -1349,7 +1352,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             int label_height = label.getMeasuredHeight(); //get height
                             int label_width = label.getMeasuredWidth();  //get width
                             labelparams.topMargin = dock.getHeight()/2 - 60 + 125;
-                            labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2);
+                            labelparams.leftMargin = snap_col * (W / 5) + 60 - (label_width / 2) + 10;
                             dock.addView(label, labelparams);
 
                             folder.add(myapp); // wrap single app in a list

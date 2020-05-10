@@ -12,10 +12,22 @@
         android:weightSum="100"
         android:orientation="vertical">
 
+        <ImageView
+            android:id="@+id/changewallpaper"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_media_next"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="10dp"
+            android:contentDescription="TODO" />
+
         <androidx.viewpager.widget.ViewPager
             android:id="@+id/vpPager"
             android:layout_width="match_parent"
-            android:layout_margin="20dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="40dp"
+            android:layout_marginEnd="20dp"
             android:layout_height="0dp"
             android:layout_weight="98" >
 
@@ -26,20 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:layout_weight="2"
-            android:background="#20cacaca" >
-
-            <ImageView
-                android:id="@+id/changewallpaper"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@android:drawable/ic_menu_edit"
-                android:clickable="true"
-                android:focusable="true"
-                android:padding="30dp"
-                android:tint="@color/colorPrimary"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentBottom="true"
-                android:contentDescription="TODO" />
+            android:background="#80cacaca">
 
         </RelativeLayout>
 
