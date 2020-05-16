@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.palette.graphics.Palette;
 import androidx.viewpager.widget.ViewPager;
-import androidx.viewpager2.widget.ViewPager2;
 import in.srain.cube.views.GridViewWithHeaderAndFooter;
 
 import android.annotation.SuppressLint;
@@ -110,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean dockentered = false;
     private RelativeLayout dock;
     private boolean edgetouched = false;
+    private View homeview;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -117,6 +117,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     AppObject myapp;
     boolean longclicked;
     HomescreenObject touchedhomescreenobject;
+
+    static AppWidgetManager mAppWidgetManager;
+    static AppWidgetHost mAppWidgetHost;
+    static int APPWIDGET_HOST_ID = 222;
+    static int REQUEST_PICK_APPWIDGET = 10;
+    static int REQUEST_CREATE_APPWIDGET = 11;
+    static int appWidgetId;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -326,11 +333,16 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
+        mAppWidgetManager = AppWidgetManager.getInstance(getApplicationContext());
+        mAppWidgetHost = new AppWidgetHost(getApplicationContext(), APPWIDGET_HOST_ID);
+        appWidgetId = mAppWidgetHost.allocateAppWidgetId();
+
     }
 
     @Override
     public void onFragmentLoaded(View fragmentContainer, int index) { // will be called 1 by 1 for each page that will be loaded
         if(fragmentContainer!=null) {
+            homeview = fragmentContainer;
             TextView tv = fragmentContainer.findViewById(R.id.fragtext);
             Log.d("VINIT", "Fragment loaded: " + tv.getText().toString() + " Index: " + index);
             prepareTarget(fragmentContainer, index);
@@ -344,9 +356,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     @Override
-    public void onAppDragged(AppObject appObject, View clickedView, MotionEvent event) {
+    public void onAppDragged(AppObject appObject, View draggedView, MotionEvent event) {
         myapp = appObject;
-        enableDrag(appObject, clickedView); //build shadow, tag dragged data
+        enableDrag(appObject, draggedView); //build shadow, tag dragged data
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         hideKeypad();
@@ -445,10 +457,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onLongPress(MotionEvent event) {
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
                 currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
-            Log.d("VINIT", "vibrate onLongPress");
             vb.vibrate(30);
             if(touchedhomescreenobject!=null) {
-                if(touchedhomescreenobject.getFolder().size()==1) { // home screen icon long clicked
+                if(touchedhomescreenobject.getFolder().size()==1) { // home screen app icon long clicked
                     Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
                     myapp = touchedhomescreenobject.getFolder().get(0);
                     homeapplongpressed = true;
@@ -462,6 +473,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 selectWidget();
             }
         }
+        // Bug:
+        // When the app first loads, none of the above
+        // criteria meets, so long click doesn't work
 
         longclicked = true;
     }
@@ -520,40 +534,44 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         return mDetector.onTouchEvent(ev);
     }
 
-    private AppWidgetManager mAppWidgetManager;
-    private AppWidgetHost mAppWidgetHost;
-
     void selectWidget() {
-        mAppWidgetManager = AppWidgetManager.getInstance(this);
-        mAppWidgetHost = new AppWidgetHost(this, 2048);
-        int appWidgetId = this.mAppWidgetHost.allocateAppWidgetId();
+        int appWidgetId = mAppWidgetHost.allocateAppWidgetId();
         Intent pickIntent = new Intent(AppWidgetManager.ACTION_APPWIDGET_PICK);
         pickIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
         addEmptyData(pickIntent);
-        startActivityForResult(pickIntent, 0);
+        startActivityForResult(pickIntent, REQUEST_PICK_APPWIDGET);
     }
+
     void addEmptyData(Intent pickIntent) {
-        ArrayList customInfo = new ArrayList();
-        pickIntent.putParcelableArrayListExtra(AppWidgetManager.EXTRA_CUSTOM_INFO, customInfo);
-        ArrayList customExtras = new ArrayList();
-        pickIntent.putParcelableArrayListExtra(AppWidgetManager.EXTRA_CUSTOM_EXTRAS, customExtras);
+        ArrayList<AppWidgetProviderInfo> customInfo =
+                new ArrayList<AppWidgetProviderInfo>();
+        pickIntent.putParcelableArrayListExtra(
+                AppWidgetManager.EXTRA_CUSTOM_INFO, customInfo);
+        ArrayList<Bundle> customExtras = new ArrayList<Bundle>();
+        pickIntent.putParcelableArrayListExtra(
+                AppWidgetManager.EXTRA_CUSTOM_EXTRAS, customExtras);
     };
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode,
+                                    Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
         if (resultCode == RESULT_OK) {
-            if (requestCode == 0) {
+            if (requestCode == REQUEST_PICK_APPWIDGET) {
+                Log.d("VINIT", "Configure widget");
                 configureWidget(data);
-            } else if (requestCode == 5) {
+            } else if (requestCode == REQUEST_CREATE_APPWIDGET) {
+                Log.d("VINIT", "Create widget");
                 createWidget(data);
             }
         } else if (resultCode == RESULT_CANCELED && data != null) {
-            int appWidgetId = data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
+            int appWidgetId =
+                    data.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
             if (appWidgetId != -1) {
                 mAppWidgetHost.deleteAppWidgetId(appWidgetId);
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void configureWidget(Intent data) {
@@ -564,25 +582,35 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             Intent intent = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
             intent.setComponent(appWidgetInfo.configure);
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-            startActivityForResult(intent, 5);
+            Log.d("VINIT", "configureWidget: configure not null");
+            startActivityForResult(intent, REQUEST_CREATE_APPWIDGET);
         } else {
+            Log.d("VINIT", "configureWidget: configure is null");
             createWidget(data);
         }
     }
 
     public void createWidget(Intent data) {
-        Bundle extras = data.getExtras();
-        int appWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
-        AppWidgetProviderInfo appWidgetInfo = mAppWidgetManager.getAppWidgetInfo(appWidgetId);
-        AppWidgetHostView hostView = mAppWidgetHost.createView(this, appWidgetId, appWidgetInfo);
-        hostView.setAppWidget(appWidgetId, appWidgetInfo);
-        ViewPager2 homescreen = findViewById(R.id.vpPager);
 
-        // specify position of widget
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
-        params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+        if(data != null) {
+            Bundle extras = data.getExtras();
+            assert extras != null;
+            int appWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
+            AppWidgetProviderInfo appWidgetInfo = mAppWidgetManager.getAppWidgetInfo(appWidgetId);
 
-        homescreen.addView(hostView, params);
+            Log.d("VINIT", "createWidget: " + appWidgetInfo.label);
+
+            AppWidgetHostView hostView = mAppWidgetHost.createView(getApplicationContext(), appWidgetId, appWidgetInfo);
+            hostView.setAppWidget(appWidgetId, appWidgetInfo);
+
+            RelativeLayout widget_container = homeview.findViewById(R.id.fragmentxml);
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+            params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+            widget_container.addView(hostView, params);
+        }
+        else {
+            Log.d("VINIT", "createWidget: null data");
+        }
     }
 
     public class PackageListener extends BroadcastReceiver { // need to fix
@@ -1086,7 +1114,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                                 // Add label
                                 TextView label = new TextView(getBaseContext());
-                                label.setText("New folder");
+                                label.setText("Untitled");
                                 label.setSingleLine();
                                 label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
                                 label.setTextColor(Color.WHITE);
@@ -1128,10 +1156,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         if (drop_area_empty) { // single app drop
                             final ImageView appicon = new ImageView(getBaseContext());
                             appicon.setImageBitmap(myapp.getAppicon());
-
-                            appicon.measure(0,0);
-                            int icon_width = appicon.getMeasuredWidth();
-                            int icon_height = appicon.getMeasuredHeight();
 
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                             params.topMargin = snap_row * (H / 6);
@@ -1242,6 +1266,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     public void prepareDock() {
+        edgetouched = false;
 
         dock.setOnDragListener(new View.OnDragListener() {
             @Override
@@ -1296,7 +1321,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                                 // Add label
                                 TextView label = new TextView(getBaseContext());
-                                label.setText("New folder");
+                                label.setText("Untitled");
                                 label.setSingleLine();
                                 label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
                                 label.setTextColor(Color.WHITE);
