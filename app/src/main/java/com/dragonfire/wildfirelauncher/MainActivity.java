@@ -4,6 +4,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
+import androidx.core.view.MotionEventCompat;
+import androidx.fragment.app.Fragment;
 import androidx.palette.graphics.Palette;
 import androidx.viewpager.widget.ViewPager;
 import in.srain.cube.views.GridViewWithHeaderAndFooter;
@@ -27,6 +29,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -47,6 +50,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.DragEvent;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -88,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private AppAdapter gridAdapter;
     private AppAdapter recentappadapter;
     private boolean drawerExpanded=false;
-    private int currentDrawerState=-1;
+    private int currentDrawerState= BottomSheetBehavior.STATE_COLLAPSED;
     private GridViewWithHeaderAndFooter drawerGridView;
     private EditText searchbar;
     private PackageListener mPackageListener;
@@ -100,7 +104,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private Vibrator vb;
     private boolean homeapplongpressed;
     private boolean sortbyusage = false;
-    private float edge = 0.0f;
     private List<BlankPage> pages;
     private PagerAdapter pagerAdapter;
     private ViewPager pager;
@@ -109,7 +112,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean dockentered = false;
     private RelativeLayout dock;
     private boolean edgetouched = false;
-    private View homeview;
+    private boolean widgettouched = false;
+    private View touchedwidget;
+
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -119,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     HomescreenObject touchedhomescreenobject;
 
     static AppWidgetManager mAppWidgetManager;
-    static AppWidgetHost mAppWidgetHost;
+    static CustomAppWidgetHost mAppWidgetHost;
     static int APPWIDGET_HOST_ID = 222;
     static int REQUEST_PICK_APPWIDGET = 10;
     static int REQUEST_CREATE_APPWIDGET = 11;
@@ -334,7 +339,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
 
         mAppWidgetManager = AppWidgetManager.getInstance(getApplicationContext());
-        mAppWidgetHost = new AppWidgetHost(getApplicationContext(), APPWIDGET_HOST_ID);
+        mAppWidgetHost = new CustomAppWidgetHost(getApplicationContext(), APPWIDGET_HOST_ID);
         appWidgetId = mAppWidgetHost.allocateAppWidgetId();
 
     }
@@ -342,7 +347,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onFragmentLoaded(View fragmentContainer, int index) { // will be called 1 by 1 for each page that will be loaded
         if(fragmentContainer!=null) {
-            homeview = fragmentContainer;
             TextView tv = fragmentContainer.findViewById(R.id.fragtext);
             Log.d("VINIT", "Fragment loaded: " + tv.getText().toString() + " Index: " + index);
             prepareTarget(fragmentContainer, index);
@@ -469,13 +473,17 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
                 touchedhomescreenobject = null;
             }
+            else if(widgettouched) {
+                Log.d("COOK", "Widget is touched, not opening widget picker");
+
+
+
+                widgettouched = false;
+            }
             else {
                 selectWidget();
             }
         }
-        // Bug:
-        // When the app first loads, none of the above
-        // criteria meets, so long click doesn't work
 
         longclicked = true;
     }
@@ -600,13 +608,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             Log.d("VINIT", "createWidget: " + appWidgetInfo.label);
 
-            AppWidgetHostView hostView = mAppWidgetHost.createView(getApplicationContext(), appWidgetId, appWidgetInfo);
+            CustomAppWidgetHostView hostView = (CustomAppWidgetHostView) mAppWidgetHost.createView(getApplicationContext(), appWidgetId, appWidgetInfo);
             hostView.setAppWidget(appWidgetId, appWidgetInfo);
 
-            RelativeLayout widget_container = homeview.findViewById(R.id.fragmentxml);
+            View v = getSupportFragmentManager().getFragments().get(pager.getCurrentItem()).getView();
+
+            assert v != null;
+            RelativeLayout widget_container = v.findViewById(R.id.fragmentxml);
             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
             params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
             widget_container.addView(hostView, params);
+            touchedwidget = hostView;
+
+            // Dragging is already enabled in CustomAppWidgetHostView
+
+
+
+
         }
         else {
             Log.d("VINIT", "createWidget: null data");
@@ -1069,168 +1087,197 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DROP:
-                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DROP");
-                        dropped = true;
-                        pager.setCurrentItem(currPageindex, false);
-                        longclicked = false;
-                        boolean drop_area_empty = true;
-                        dock.setOnTouchListener(null);
-                        homescreen.setOnTouchListener(null);
 
-                        final List<AppObject> folder = new ArrayList<>();
-                        int W = homescreen.getWidth();
-                        int H = homescreen.getHeight();
-                        int cursor_x = (int) event.getX();
-                        int cursor_y = (int) event.getY();
-                        final int snap_row = Math.round(cursor_y / (H / 6));
-                        final int snap_col = Math.round(cursor_x / (W / 5));
+                        // TODO
+                        // Dropped item can be an AppObject, or a Widget
+                        // This only works for AppObject
 
-                        for (final HomescreenObject homescreenObject : homescreenObjects) {
-                            if (snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY() && currPageindex == homescreenObject.getPageNo()) {
-                                drop_area_empty = false; // drop area is not empty
-                                homescreenObject.getFolder().add(myapp);
-                                homescreenObject.setDir(true);
+                        if(widgettouched) {
 
-                                homescreen.removeView(homescreenObject.getIcon());
-                                homescreen.removeView(homescreenObject.getLabel());
-                                final ImageView folderview = new ImageView(getBaseContext());
+                            RelativeLayout widget_container = v.findViewById(R.id.fragmentxml);
+                            widget_container.removeView(touchedwidget);
 
-                                ArrayList<Bitmap> tinyicons = new ArrayList<>();
+                            int W = homescreen.getWidth();
+                            int H = homescreen.getHeight();
+                            int cursor_x = (int) event.getX();
+                            int cursor_y = (int) event.getY();
+                            final int snap_row = Math.round(cursor_y / (H / 6));
+                            final int snap_col = Math.round(cursor_x / (W / 5));
 
-                                int i = 0;
-                                for (AppObject ao : homescreenObject.getFolder()) {
-                                    if (i >= 4)
-                                        break;
-                                    else {
-                                        tinyicons.add(ao.getAppicon());
+                            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT); // size of the widget
+                            params.topMargin = snap_row * (H / 6);
+                            params.leftMargin = snap_col * (W / 5) + (W/10) - 60;
+
+                            widget_container.addView(touchedwidget, params);
+
+                            widgettouched = false;
+                        }
+                        else {
+                            Log.d("VINIT", "prepareTarget: " + "ACTION_DROP");
+                            dropped = true;
+                            pager.setCurrentItem(currPageindex, false);
+                            longclicked = false;
+                            boolean drop_area_empty = true;
+                            dock.setOnTouchListener(null);
+                            homescreen.setOnTouchListener(null);
+
+                            final List<AppObject> folder = new ArrayList<>();
+                            int W = homescreen.getWidth();
+                            int H = homescreen.getHeight();
+                            int cursor_x = (int) event.getX();
+                            int cursor_y = (int) event.getY();
+                            final int snap_row = Math.round(cursor_y / (H / 6));
+                            final int snap_col = Math.round(cursor_x / (W / 5));
+
+                            for (final HomescreenObject homescreenObject : homescreenObjects) {
+                                if (snap_col == homescreenObject.getX() && snap_row == homescreenObject.getY() && currPageindex == homescreenObject.getPageNo()) {
+                                    drop_area_empty = false; // drop area is not empty
+                                    homescreenObject.getFolder().add(myapp);
+                                    homescreenObject.setDir(true);
+
+                                    homescreen.removeView(homescreenObject.getIcon());
+                                    homescreen.removeView(homescreenObject.getLabel());
+                                    final ImageView folderview = new ImageView(getBaseContext());
+
+                                    ArrayList<Bitmap> tinyicons = new ArrayList<>();
+
+                                    int i = 0;
+                                    for (AppObject ao : homescreenObject.getFolder()) {
+                                        if (i >= 4)
+                                            break;
+                                        else {
+                                            tinyicons.add(ao.getAppicon());
+                                        }
+                                        i++;
                                     }
-                                    i++;
+                                    folderview.setImageBitmap(generateFolderIcon(tinyicons));
+                                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
+                                    params.topMargin = snap_row * (H / 6);
+                                    params.leftMargin = snap_col * (W / 5) + (W/10) - 60;
+                                    homescreen.addView(folderview, params);
+
+                                    // Add label
+                                    TextView label = new TextView(getBaseContext());
+                                    label.setText("Untitled");
+                                    label.setSingleLine();
+                                    label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                                    label.setTextColor(Color.WHITE);
+                                    RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                            RelativeLayout.LayoutParams.WRAP_CONTENT);
+                                    label.measure(0, 0);       //must call measure!
+                                    int label_width = label.getMeasuredWidth();  //get width
+                                    labelparams.topMargin = snap_row * (H / 6) + 125;
+                                    labelparams.leftMargin = snap_col * (W / 5) + (W/10) - (label_width/2);
+                                    homescreen.addView(label, labelparams);
+
+                                    folderview.setOnClickListener(new View.OnClickListener() {
+                                        @RequiresApi(api = Build.VERSION_CODES.M)
+                                        @Override
+                                        public void onClick(View v) {
+                                            if (touchedhomescreenobject != null) {
+                                                folderpopupwindow = setFolderPopup(homescreenObject.getFolder());
+                                                folderpopupwindow.showAsDropDown(v);
+                                            }
+
+                                        }
+                                    });
+
+                                    // Enable drag on folder icon once added on homescreen
+                                    //TODO
+                                    folderview.setOnTouchListener(new View.OnTouchListener() {
+                                        @Override
+                                        public boolean onTouch(View v, MotionEvent event) {
+                                            switch (event.getAction()) {
+                                                case MotionEvent.ACTION_DOWN:
+                                                    touchedhomescreenobject = homescreenObject;
+                                            }
+                                            return false;
+                                        }
+                                    });
+
+                                    break;
                                 }
-                                folderview.setImageBitmap(generateFolderIcon(tinyicons));
+                            }
+                            if (drop_area_empty) { // single app drop
+                                final ImageView appicon = new ImageView(getBaseContext());
+                                appicon.setImageBitmap(myapp.getAppicon());
+
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
                                 params.topMargin = snap_row * (H / 6);
                                 params.leftMargin = snap_col * (W / 5) + (W/10) - 60;
-                                homescreen.addView(folderview, params);
+                                homescreen.addView(appicon, params);
 
                                 // Add label
-                                TextView label = new TextView(getBaseContext());
-                                label.setText("Untitled");
+                                final TextView label = new TextView(getBaseContext());
+                                label.setText(myapp.getAppname());
                                 label.setSingleLine();
                                 label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
                                 label.setTextColor(Color.WHITE);
                                 RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
                                         RelativeLayout.LayoutParams.WRAP_CONTENT);
                                 label.measure(0, 0);       //must call measure!
+                                int label_height = label.getMeasuredHeight(); //get height
                                 int label_width = label.getMeasuredWidth();  //get width
                                 labelparams.topMargin = snap_row * (H / 6) + 125;
                                 labelparams.leftMargin = snap_col * (W / 5) + (W/10) - (label_width/2);
                                 homescreen.addView(label, labelparams);
 
-                                folderview.setOnClickListener(new View.OnClickListener() {
-                                    @RequiresApi(api = Build.VERSION_CODES.M)
+                                folder.add(myapp); // wrap single app in a list
+                                final HomescreenObject homescreenObject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, currPageindex);
+                                homescreenObjects.add(homescreenObject);
+
+                                ClipData.Item item = event.getClipData().getItemAt(0);
+                                final String dragData = item.getText().toString();
+                                final String[] app = dragData.split("~");
+                                appicon.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
                                         if (touchedhomescreenobject != null) {
-                                            folderpopupwindow = setFolderPopup(homescreenObject.getFolder());
-                                            folderpopupwindow.showAsDropDown(v);
+                                            launchApp(app[1]); // launch app from package name
                                         }
 
                                     }
                                 });
 
-                                // Enable drag on folder icon once added on homescreen
-                                folderview.setOnTouchListener(new View.OnTouchListener() {
+                                // Enable drag on icon once added on homescreen
+                                appicon.setOnTouchListener(new View.OnTouchListener() {
+                                    @SuppressLint("ClickableViewAccessibility")
                                     @Override
                                     public boolean onTouch(View v, MotionEvent event) {
                                         switch (event.getAction()) {
                                             case MotionEvent.ACTION_DOWN:
-                                                touchedhomescreenobject = homescreenObject;
+                                                touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, currPageindex);
+                                                break;
+                                            case MotionEvent.ACTION_MOVE:
+                                                if (homeapplongpressed) {
+                                                    ClipData.Item item = new ClipData.Item(myapp.getAppname() + "~" + myapp.getPackagename() + "~" + myapp.getAppicon());
+                                                    ClipData dragData = new ClipData(
+                                                            (CharSequence) v.getTag(),
+                                                            new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                                                            item);
+                                                    v.startDrag(dragData,  // the data to be dragged
+                                                            new View.DragShadowBuilder(v),  // the drag shadow builder
+                                                            null,      // no need to use local data
+                                                            0          // flags (not currently used, set to 0)
+                                                    );
+
+                                                    homescreen.removeView(v);
+                                                    homescreen.removeView(label);
+
+                                                    for (HomescreenObject hso : homescreenObjects) {
+                                                        if (hso.getX() == snap_col && hso.getY() == snap_row) {
+                                                            homescreenObjects.remove(hso);
+                                                            break;
+                                                        }
+                                                    }
+                                                    homeapplongpressed = false;
+                                                }
                                         }
                                         return false;
                                     }
                                 });
-
-                                break;
                             }
-                        }
-                        if (drop_area_empty) { // single app drop
-                            final ImageView appicon = new ImageView(getBaseContext());
-                            appicon.setImageBitmap(myapp.getAppicon());
-
-                            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
-                            params.topMargin = snap_row * (H / 6);
-                            params.leftMargin = snap_col * (W / 5) + (W/10) - 60;
-                            homescreen.addView(appicon, params);
-
-                            // Add label
-                            final TextView label = new TextView(getBaseContext());
-                            label.setText(myapp.getAppname());
-                            label.setSingleLine();
-                            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
-                            label.setTextColor(Color.WHITE);
-                            RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT);
-                            label.measure(0, 0);       //must call measure!
-                            int label_height = label.getMeasuredHeight(); //get height
-                            int label_width = label.getMeasuredWidth();  //get width
-                            labelparams.topMargin = snap_row * (H / 6) + 125;
-                            labelparams.leftMargin = snap_col * (W / 5) + (W/10) - (label_width/2);
-                            homescreen.addView(label, labelparams);
-
-                            folder.add(myapp); // wrap single app in a list
-                            final HomescreenObject homescreenObject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, currPageindex);
-                            homescreenObjects.add(homescreenObject);
-
-                            ClipData.Item item = event.getClipData().getItemAt(0);
-                            final String dragData = item.getText().toString();
-                            final String[] app = dragData.split("~");
-                            appicon.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    if (touchedhomescreenobject != null) {
-                                        launchApp(app[1]); // launch app from package name
-                                    }
-
-                                }
-                            });
-
-                            // Enable drag on icon once added on homescreen
-                            appicon.setOnTouchListener(new View.OnTouchListener() {
-                                @SuppressLint("ClickableViewAccessibility")
-                                @Override
-                                public boolean onTouch(View v, MotionEvent event) {
-                                    switch (event.getAction()) {
-                                        case MotionEvent.ACTION_DOWN:
-                                            touchedhomescreenobject = new HomescreenObject(folder, snap_col, snap_row, false, appicon, label, currPageindex);
-                                            break;
-                                        case MotionEvent.ACTION_MOVE:
-                                            if (homeapplongpressed) {
-                                                ClipData.Item item = new ClipData.Item(myapp.getAppname() + "~" + myapp.getPackagename() + "~" + myapp.getAppicon());
-                                                ClipData dragData = new ClipData(
-                                                        (CharSequence) v.getTag(),
-                                                        new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                                                        item);
-                                                v.startDrag(dragData,  // the data to be dragged
-                                                        new View.DragShadowBuilder(v),  // the drag shadow builder
-                                                        null,      // no need to use local data
-                                                        0          // flags (not currently used, set to 0)
-                                                );
-
-                                                homescreen.removeView(v);
-                                                homescreen.removeView(label);
-
-                                                for (HomescreenObject hso : homescreenObjects) {
-                                                    if (hso.getX() == snap_col && hso.getY() == snap_row) {
-                                                        homescreenObjects.remove(hso);
-                                                        break;
-                                                    }
-                                                }
-                                                homeapplongpressed = false;
-                                            }
-                                    }
-                                    return false;
-                                }
-                            });
                         }
 
                         return true;
@@ -1457,6 +1504,71 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
+    }
+
+    private class CustomAppWidgetHost extends AppWidgetHost {
+
+        CustomAppWidgetHost(Context context, int hostId) {
+            super(context, hostId);
+        }
+
+        @Override
+        protected AppWidgetHostView onCreateView(Context context, int appWidgetId, AppWidgetProviderInfo appWidget) {
+            // pass back our custom AppWidgetHostView
+            return new CustomAppWidgetHostView(context);
+        }
+    }
+
+    private class CustomAppWidgetHostView extends AppWidgetHostView {
+
+        private OnLongClickListener longClick;
+        private long down;
+
+        public CustomAppWidgetHostView(Context context) {
+            super(context);
+        }
+
+        public CustomAppWidgetHostView(Context context, int animationIn, int animationOut) {
+            super(context, animationIn, animationOut);
+        }
+
+        @Override
+        public void setOnLongClickListener(OnLongClickListener l) {
+            this.longClick = l;
+        }
+
+        @Override
+        public boolean onInterceptTouchEvent(MotionEvent ev) {
+            switch(MotionEventCompat.getActionMasked( ev ) ) {
+                case MotionEvent.ACTION_DOWN:
+                    widgettouched = true;
+                    touchedwidget = CustomAppWidgetHostView.this;
+                    down = System.currentTimeMillis();
+
+                    ClipData.Item item = new ClipData.Item("test" + "~" + "test");
+                    ClipData dragData = new ClipData(
+                            (CharSequence) CustomAppWidgetHostView.this.getTag(),
+                            new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                            item);
+                    CustomAppWidgetHostView.this.startDrag(dragData,  // the data to be dragged
+                            new View.DragShadowBuilder(CustomAppWidgetHostView.this),  // the drag shadow builder
+                            null,      // no need to use local data
+                            0          // flags (not currently used, set to 0)
+                    );
+
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    boolean upVal = System.currentTimeMillis() - down > 300L;
+                    if( upVal ) {
+                        longClick.onLongClick( CustomAppWidgetHostView.this );
+                    }
+
+                    break;
+
+            }
+
+            return false;
+        }
     }
 
 }
