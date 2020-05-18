@@ -59,6 +59,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -72,6 +73,7 @@ import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -475,10 +477,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
             else if(widgettouched) {
                 Log.d("COOK", "Widget is touched, not opening widget picker");
+                ClipData.Item item = new ClipData.Item("test" + "~" + "test");
+                ClipData dragData = new ClipData(
+                        (CharSequence) touchedwidget.getTag(),
+                        new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                        item);
+                touchedwidget.startDrag(dragData,  // the data to be dragged
+                        new View.DragShadowBuilder(touchedwidget),  // the drag shadow builder
+                        null,      // no need to use local data
+                        0          // flags (not currently used, set to 0)
+                );
+
+                View myview = getSupportFragmentManager().getFragments().get(pager.getCurrentItem()).getView();
+                assert myview != null;
+                RelativeLayout widget_container = myview.findViewById(R.id.fragmentxml);
+                widget_container.removeView(touchedwidget);
 
 
-
-                widgettouched = false;
             }
             else {
                 selectWidget();
@@ -610,21 +625,25 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             CustomAppWidgetHostView hostView = (CustomAppWidgetHostView) mAppWidgetHost.createView(getApplicationContext(), appWidgetId, appWidgetInfo);
             hostView.setAppWidget(appWidgetId, appWidgetInfo);
-
             View v = getSupportFragmentManager().getFragments().get(pager.getCurrentItem()).getView();
+
+            hostView.measure(0,0);
+            int ww = hostView.getMeasuredWidth();
+            int wh = hostView.getMeasuredHeight();
+            Log.d("COOK", "before_width: " + ww + ", before_height: " + wh);
+
+            float scalingFactor = 0.8f; // scale down to half the size
+            hostView.setScaleX(scalingFactor);
+            hostView.setScaleY(scalingFactor);
 
             assert v != null;
             RelativeLayout widget_container = v.findViewById(R.id.fragmentxml);
-            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
             params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+
+
             widget_container.addView(hostView, params);
             touchedwidget = hostView;
-
-            // Dragging is already enabled in CustomAppWidgetHostView
-
-
-
-
         }
         else {
             Log.d("VINIT", "createWidget: null data");
@@ -1087,14 +1106,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DROP:
-
-                        // TODO
                         // Dropped item can be an AppObject, or a Widget
-                        // This only works for AppObject
 
-                        if(widgettouched) {
-
+                        if(widgettouched) { // widget is dropped on homescreen
                             RelativeLayout widget_container = v.findViewById(R.id.fragmentxml);
+                            touchedwidget.measure(0, 0);
+                            int ww = touchedwidget.getMeasuredWidth();
                             widget_container.removeView(touchedwidget);
 
                             int W = homescreen.getWidth();
@@ -1107,13 +1124,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
                                     RelativeLayout.LayoutParams.WRAP_CONTENT); // size of the widget
                             params.topMargin = snap_row * (H / 6);
-                            params.leftMargin = snap_col * (W / 5) + (W/10) - 60;
+                            params.leftMargin = snap_col * (W / 5) + (W/10) - (ww/2);
+
 
                             widget_container.addView(touchedwidget, params);
-
                             widgettouched = false;
                         }
-                        else {
+                        else { // app is being dropped to homescreen
                             Log.d("VINIT", "prepareTarget: " + "ACTION_DROP");
                             dropped = true;
                             pager.setCurrentItem(currPageindex, false);
@@ -1540,35 +1557,30 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         @Override
         public boolean onInterceptTouchEvent(MotionEvent ev) {
             switch(MotionEventCompat.getActionMasked( ev ) ) {
+
                 case MotionEvent.ACTION_DOWN:
                     widgettouched = true;
                     touchedwidget = CustomAppWidgetHostView.this;
                     down = System.currentTimeMillis();
-
-                    ClipData.Item item = new ClipData.Item("test" + "~" + "test");
-                    ClipData dragData = new ClipData(
-                            (CharSequence) CustomAppWidgetHostView.this.getTag(),
-                            new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                            item);
-                    CustomAppWidgetHostView.this.startDrag(dragData,  // the data to be dragged
-                            new View.DragShadowBuilder(CustomAppWidgetHostView.this),  // the drag shadow builder
-                            null,      // no need to use local data
-                            0          // flags (not currently used, set to 0)
-                    );
-
                     break;
+
                 case MotionEvent.ACTION_MOVE:
                     boolean upVal = System.currentTimeMillis() - down > 300L;
                     if( upVal ) {
                         longClick.onLongClick( CustomAppWidgetHostView.this );
+                        Log.d("COOK", "Widget long clicked");
                     }
-
                     break;
-
             }
-
             return false;
         }
+    }
+
+    private void resize(View view, float scaleX, float scaleY) {
+        ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+        layoutParams.width = (int) (view.getWidth() * scaleX);
+        layoutParams.height = (int) (view.getHeight() * scaleY);
+        view.setLayoutParams(layoutParams);
     }
 
 }

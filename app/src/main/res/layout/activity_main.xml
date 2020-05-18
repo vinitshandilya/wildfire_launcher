@@ -25,7 +25,7 @@
         <androidx.viewpager.widget.ViewPager
             android:id="@+id/vpPager"
             android:layout_width="match_parent"
-            android:layout_margin="20dp"
+            android:layout_margin="5dp"
             android:layout_height="0dp"
             android:layout_weight="98" >
 
