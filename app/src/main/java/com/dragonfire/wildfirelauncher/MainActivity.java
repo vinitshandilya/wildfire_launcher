@@ -5,7 +5,6 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.MotionEventCompat;
-import androidx.fragment.app.Fragment;
 import androidx.palette.graphics.Palette;
 import androidx.viewpager.widget.ViewPager;
 import in.srain.cube.views.GridViewWithHeaderAndFooter;
@@ -69,6 +68,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.kc.unsplash.Unsplash;
 import com.kc.unsplash.models.Photo;
 import com.kc.unsplash.models.SearchResults;
+import com.rd.PageIndicatorView;
+import com.rd.animation.type.AnimationType;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
@@ -160,6 +161,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         pagerAdapter = new PagerAdapter(getSupportFragmentManager(), 0, pages);
         pager.setAdapter(pagerAdapter);
         //addNewPage(); // Add another page
+
+        PageIndicatorView pageIndicatorView = findViewById(R.id.pageIndicatorView);
+        // https://github.com/romandanylyk/PageIndicatorView
+        pageIndicatorView.setAnimationType(AnimationType.SWAP);
+        pageIndicatorView.setSelectedColor(Color.RED);
+        pageIndicatorView.setUnselectedColor(Color.LTGRAY);
+        pageIndicatorView.setCount(5); // specify total count of indicators
+        pageIndicatorView.setSelection(2);
 
         mDetector = new GestureDetectorCompat(this,this);
 
@@ -344,14 +353,35 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mAppWidgetHost = new CustomAppWidgetHost(getApplicationContext(), APPWIDGET_HOST_ID);
         appWidgetId = mAppWidgetHost.allocateAppWidgetId();
 
+        pager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                //Log.d("PAGER", "onPageScrolled");
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                //Log.d("PAGER", "onPageSelected");
+
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                //Log.d("PAGER", "onPageScrollStateChanged");
+                mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+
+            }
+        });
+
     }
 
     @Override
     public void onFragmentLoaded(View fragmentContainer, int index) { // will be called 1 by 1 for each page that will be loaded
         if(fragmentContainer!=null) {
-            TextView tv = fragmentContainer.findViewById(R.id.fragtext);
-            Log.d("VINIT", "Fragment loaded: " + tv.getText().toString() + " Index: " + index);
+            //TextView tv = fragmentContainer.findViewById(R.id.fragtext);
+            //Log.d("VINIT", "Fragment loaded: " + tv.getText().toString() + " Index: " + index);
             prepareTarget(fragmentContainer, index);
+            //Log.d("COOK", "New page loaded");
         }
     }
 
@@ -476,7 +506,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 touchedhomescreenobject = null;
             }
             else if(widgettouched) {
-                Log.d("COOK", "Widget is touched, not opening widget picker");
                 ClipData.Item item = new ClipData.Item("test" + "~" + "test");
                 ClipData dragData = new ClipData(
                         (CharSequence) touchedwidget.getTag(),
@@ -621,7 +650,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             int appWidgetId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
             AppWidgetProviderInfo appWidgetInfo = mAppWidgetManager.getAppWidgetInfo(appWidgetId);
 
-            Log.d("VINIT", "createWidget: " + appWidgetInfo.label);
+            //Log.d("VINIT", "createWidget: " + appWidgetInfo.label);
 
             CustomAppWidgetHostView hostView = (CustomAppWidgetHostView) mAppWidgetHost.createView(getApplicationContext(), appWidgetId, appWidgetInfo);
             hostView.setAppWidget(appWidgetId, appWidgetInfo);
@@ -630,7 +659,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             hostView.measure(0,0);
             int ww = hostView.getMeasuredWidth();
             int wh = hostView.getMeasuredHeight();
-            Log.d("COOK", "before_width: " + ww + ", before_height: " + wh);
+            //Log.d("COOK", "before_width: " + ww + ", before_height: " + wh);
 
             float scalingFactor = 0.8f; // scale down to half the size
             hostView.setScaleX(scalingFactor);
@@ -1061,9 +1090,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     private void prepareTarget(final View fragmentContainer, final int currPageindex) {
         final RelativeLayout homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
+        homescreen.measure(0,0);
+        Log.d("COOK", "homescreen width: " + homescreen.getMeasuredWidth() + ", homescreen height: " + homescreen.getMeasuredHeight());
+
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, final DragEvent event) {
+                Log.d("COOK", "X: " + event.getX() + ", Y: " + event.getY());
                 dragentered = true;
                 dropped = false;
                 edgetouched = event.getX() == 0.0;
@@ -1559,6 +1592,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             switch(MotionEventCompat.getActionMasked( ev ) ) {
 
                 case MotionEvent.ACTION_DOWN:
+                    //Log.d("COOK", "widget touched down");
                     widgettouched = true;
                     touchedwidget = CustomAppWidgetHostView.this;
                     down = System.currentTimeMillis();
@@ -1568,19 +1602,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     boolean upVal = System.currentTimeMillis() - down > 300L;
                     if( upVal ) {
                         longClick.onLongClick( CustomAppWidgetHostView.this );
-                        Log.d("COOK", "Widget long clicked");
+                        //Log.d("COOK", "Widget long clicked");
                     }
                     break;
             }
             return false;
         }
-    }
-
-    private void resize(View view, float scaleX, float scaleY) {
-        ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
-        layoutParams.width = (int) (view.getWidth() * scaleX);
-        layoutParams.height = (int) (view.getHeight() * scaleY);
-        view.setLayoutParams(layoutParams);
     }
 
 }

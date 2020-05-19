@@ -56,8 +56,8 @@ public class BlankPage extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         pageView = inflater.inflate(R.layout.fragment_blank_page, container, false);
-        TextView tv = pageView.findViewById(R.id.fragtext);
-        tv.setText(mParam1 + ", " + mParam2);
+        //TextView tv = pageView.findViewById(R.id.fragtext);
+        //tv.setText(mParam1 + ", " + mParam2);
         mFragmentLoadListener.onFragmentLoaded(pageView, index); // callback to mainactivity
         return pageView;
     }
