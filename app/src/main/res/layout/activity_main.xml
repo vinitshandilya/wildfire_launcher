@@ -27,18 +27,16 @@
             android:layout_height="0dp"
             android:layout_weight="85">
 
+            <androidx.viewpager.widget.ViewPager
+                android:id="@+id/vpPager"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
             <View
                 android:id="@+id/leftbar"
                 android:layout_width="25dp"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true" />
-
-            <androidx.viewpager.widget.ViewPager
-                android:id="@+id/vpPager"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_toStartOf="@+id/rightbar"
-                android:layout_toEndOf="@+id/leftbar" />
 
             <View
                 android:id="@+id/rightbar"

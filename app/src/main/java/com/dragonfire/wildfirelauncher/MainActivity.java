@@ -109,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean widgettouched = false;
     private View touchedwidget;
     private boolean scrolled = false;
+    private View leftbar, rightbar;
 
 
     DisplayMetrics displaymetrics;
@@ -156,9 +157,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         PageIndicatorView pageIndicatorView = findViewById(R.id.pageIndicatorView);
         // https://github.com/romandanylyk/PageIndicatorView
-        pageIndicatorView.setAnimationType(AnimationType.SWAP);
-        pageIndicatorView.setSelectedColor(Color.RED);
-        pageIndicatorView.setUnselectedColor(Color.LTGRAY);
+        pageIndicatorView.setAnimationType(AnimationType.WORM);
+        pageIndicatorView.setSelectedColor(Color.WHITE);
+        pageIndicatorView.setUnselectedColor(Color.parseColor("#20FFFFFF"));
         pageIndicatorView.setCount(5); // specify total count of indicators
         pageIndicatorView.setSelection(2);
 
@@ -392,7 +393,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-        View leftbar = findViewById(R.id.leftbar);
+        leftbar = findViewById(R.id.leftbar);
         leftbar.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
@@ -405,6 +406,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         Log.d("COOK", "Scroll left");
                         if(!scrolled) {
                             try {
+                                vb.vibrate(20);
                                 pager.setCurrentItem(pager.getCurrentItem()-1);
                             }
                             catch (Exception e) {
@@ -429,7 +431,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-        View rightbar = findViewById(R.id.rightbar);
+        rightbar = findViewById(R.id.rightbar);
         rightbar.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
@@ -442,6 +444,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         Log.d("COOK", "Scroll right");
                         if(!scrolled) {
                             try {
+                                vb.vibrate(20);
                                 scrollToNextPage(pager.getCurrentItem());
                             }
                             catch (Exception e) {
@@ -464,6 +467,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }
         });
+
+        leftbar.setVisibility(View.GONE);
+        rightbar.setVisibility(View.GONE);
 
 
     } // onCreate ends here
@@ -501,6 +507,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onAppLongClicked(AppObject appObject, View clickedView) {
         scrolled = false;
+        leftbar.setVisibility(View.VISIBLE);
+        rightbar.setVisibility(View.VISIBLE);
         myapp = appObject;
         Log.d("VINIT", "vibrate onAppLongClicked");
         vb.vibrate(15);
@@ -557,6 +565,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onLongPress(MotionEvent event) {
         scrolled = false;
+        leftbar.setVisibility(View.VISIBLE);
+        rightbar.setVisibility(View.VISIBLE);
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
                 currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
             vb.vibrate(30);
@@ -1176,6 +1186,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                     case DragEvent.ACTION_DROP:
                         // Dropped item can be an AppObject, or a Widget
+
+                        leftbar.setVisibility(View.GONE);
+                        rightbar.setVisibility(View.GONE);
 
                         if(widgettouched) { // widget is dropped on homescreen
                             RelativeLayout widget_container = v.findViewById(R.id.fragmentxml);
