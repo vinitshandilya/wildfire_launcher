@@ -106,6 +106,7 @@ public class AppAdapter extends BaseAdapter {
                             case MotionEvent.ACTION_MOVE:
                                 //Log.d(TAG, "ACTION MOVE " + appObject.getAppname());
                                 mAppDragListener.onAppDragged(appObject, v, event);
+                                v.setPressed(false);
                                 return true;
 
                             case MotionEvent.ACTION_UP:

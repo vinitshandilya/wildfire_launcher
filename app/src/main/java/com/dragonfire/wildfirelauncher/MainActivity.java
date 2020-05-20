@@ -28,7 +28,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -39,7 +38,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.text.Editable;
@@ -49,7 +47,6 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.DragEvent;
 import android.view.GestureDetector;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -58,7 +55,6 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -74,7 +70,6 @@ import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -110,13 +105,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private List<BlankPage> pages;
     private PagerAdapter pagerAdapter;
     private ViewPager pager;
-    private boolean dragentered = false;
-    private boolean dropped = false;
-    private boolean dockentered = false;
     private RelativeLayout dock;
-    private boolean edgetouched = false;
     private boolean widgettouched = false;
     private View touchedwidget;
+    private boolean scrolled = false;
 
 
     DisplayMetrics displaymetrics;
@@ -373,15 +365,113 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-    }
+        dock.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch(event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        Log.d("COOK", "Dock entered");
+                        prepareDock();
+                        return true;
+
+                    case DragEvent.ACTION_DROP:
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_EXITED:
+
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+        });
+
+        View leftbar = findViewById(R.id.leftbar);
+        leftbar.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch(event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        Log.d("COOK", "Scroll left");
+                        if(!scrolled) {
+                            try {
+                                pager.setCurrentItem(pager.getCurrentItem()-1);
+                            }
+                            catch (Exception e) {
+                                Log.d("COOK", "Can't scroll left anymore");
+                            }
+                            scrolled = true;
+                        }
+
+                        return true;
+
+                    case DragEvent.ACTION_DROP:
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_EXITED:
+
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+        });
+
+        View rightbar = findViewById(R.id.rightbar);
+        rightbar.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View v, DragEvent event) {
+                switch(event.getAction()) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_ENTERED:
+                        Log.d("COOK", "Scroll right");
+                        if(!scrolled) {
+                            try {
+                                scrollToNextPage(pager.getCurrentItem());
+                            }
+                            catch (Exception e) {
+                                Log.d("COOK", "Can't scroll left anymore");
+                            }
+                            scrolled = true;
+                        }
+                        return true;
+
+                    case DragEvent.ACTION_DROP:
+
+                        return true;
+
+                    case DragEvent.ACTION_DRAG_EXITED:
+
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+        });
+
+
+    } // onCreate ends here
 
     @Override
     public void onFragmentLoaded(View fragmentContainer, int index) { // will be called 1 by 1 for each page that will be loaded
         if(fragmentContainer!=null) {
-            //TextView tv = fragmentContainer.findViewById(R.id.fragtext);
-            //Log.d("VINIT", "Fragment loaded: " + tv.getText().toString() + " Index: " + index);
-            prepareTarget(fragmentContainer, index);
-            //Log.d("COOK", "New page loaded");
+            prepareHomescreen(fragmentContainer, index);
         }
     }
 
@@ -410,6 +500,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onAppLongClicked(AppObject appObject, View clickedView) {
+        scrolled = false;
         myapp = appObject;
         Log.d("VINIT", "vibrate onAppLongClicked");
         vb.vibrate(15);
@@ -419,32 +510,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         popupWindow = setPopupWindow(popupBg);
         popupWindow.showAsDropDown(clickedView);
         longclicked=true;
-
-        dock.setOnDragListener(new View.OnDragListener() {
-            @Override
-            public boolean onDrag(View v, DragEvent event) {
-                switch (event.getAction()) {
-                    case DragEvent.ACTION_DRAG_STARTED:
-                        //Log.d("VINIT", "DOCK: ACTION_DRAG_STARTED");
-                        return true;
-                    case DragEvent.ACTION_DRAG_ENTERED:
-                        //Log.d("VINIT", "DOCK: ACTION_DRAG_ENTERED");
-                        dockentered = true;
-                        return true;
-                    case DragEvent.ACTION_DRAG_EXITED:
-                        //Log.d("VINIT", "DOCK: ACTION_DRAG_EXITED");
-                        dockentered = false;
-                        return true;
-                    case DragEvent.ACTION_DRAG_ENDED:
-                        //Log.d("VINIT", "DOCK: ACTION_DRAG_ENDED");
-                        dockentered = false;
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-        });
-
     }
 
     // Gesture intercept
@@ -491,17 +556,18 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public void onLongPress(MotionEvent event) {
+        scrolled = false;
         if(currentDrawerState == BottomSheetBehavior.STATE_COLLAPSED ||
                 currentDrawerState == BottomSheetBehavior.STATE_HIDDEN) {
             vb.vibrate(30);
             if(touchedhomescreenobject!=null) {
                 if(touchedhomescreenobject.getFolder().size()==1) { // home screen app icon long clicked
-                    Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
                     myapp = touchedhomescreenobject.getFolder().get(0);
                     homeapplongpressed = true;
                 }
                 else { // home screen folder clicked
-                    Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().size() + " long pressed", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().size() + " long pressed", Toast.LENGTH_SHORT).show();
                 }
                 touchedhomescreenobject = null;
             }
@@ -1088,49 +1154,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
     }
 
-    private void prepareTarget(final View fragmentContainer, final int currPageindex) {
+    private void prepareHomescreen(final View fragmentContainer, final int currPageindex) {
         final RelativeLayout homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
-        homescreen.measure(0,0);
-        Log.d("COOK", "homescreen width: " + homescreen.getMeasuredWidth() + ", homescreen height: " + homescreen.getMeasuredHeight());
 
         homescreen.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, final DragEvent event) {
-                Log.d("COOK", "X: " + event.getX() + ", Y: " + event.getY());
-                dragentered = true;
-                dropped = false;
-                edgetouched = event.getX() == 0.0;
 
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_STARTED:
-                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_STARTED");
+
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENTERED");
-                        if (event.getX() == 0 && event.getY() == 0 && dragentered && !dropped) { // condition to check finger dragged to screen edge
-                            dragentered = false;
-                            final Handler handler = new Handler();
-                            handler.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Log.d("VINIT", "vibrate handler");
-                                    Log.d("VINIT", "X: " + event.getX() + ", Y: " + event.getY() +
-                                            ", dragentered: " + dragentered + ", dockentered: " + dockentered + ", dropped: " + dropped);
-                                    if(dockentered) {
-                                        vb.vibrate(20);
-                                        prepareDock();
-                                    }
-                                    else {
-                                        if(!dropped && edgetouched) {
-                                            vb.vibrate(20);
-                                            scrollToNextPage(currPageindex);
-                                            edgetouched = false;
-                                        }
-                                    }
-                                }
-                            }, 1000);
-                        }
 
                         try {
                             popupWindow.dismiss();
@@ -1164,13 +1200,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             widgettouched = false;
                         }
                         else { // app is being dropped to homescreen
-                            Log.d("VINIT", "prepareTarget: " + "ACTION_DROP");
-                            dropped = true;
                             pager.setCurrentItem(currPageindex, false);
                             longclicked = false;
                             boolean drop_area_empty = true;
-                            dock.setOnTouchListener(null);
-                            homescreen.setOnTouchListener(null);
 
                             final List<AppObject> folder = new ArrayList<>();
                             int W = homescreen.getWidth();
@@ -1333,8 +1365,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENDED:
-                        dropped = true;
-                        //Log.d("VINIT", "prepareTarget: " + "ACTION_DRAG_ENDED");
+
                         return true;
 
                     default:
@@ -1346,7 +1377,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     public void scrollToNextPage(int currentindex) {
-        dropped = true;
         //newpagereqd = false;
         if(currentindex == pages.size()-1) {
             int pageno = currentindex + 2;
@@ -1363,8 +1393,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     }
 
     public void prepareDock() {
-        edgetouched = false;
-
         dock.setOnDragListener(new View.OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
@@ -1540,9 +1568,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENDED:
-                        dropped = true;
-                        dockentered = false;
-                        //Log.d("VINIT", "prepareDock: " + "ACTION_DRAG_ENDED");
                         return true;
 
                     default:
@@ -1608,6 +1633,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
             return false;
         }
+    }
+
+    private View findView(float x, float y, ArrayList<View> targets)
+    {
+        final int count = targets.size();
+        for (int i = 0; i < count; i++) {
+            final View target = targets.get(i);
+            if (target.getRight() > x && target.getTop() < y
+                    && target.getBottom() > y && target.getLeft() < x) {
+                return target;
+            }
+        }
+        return null;
     }
 
 }
