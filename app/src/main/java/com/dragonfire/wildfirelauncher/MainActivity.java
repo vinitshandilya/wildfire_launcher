@@ -1378,6 +1378,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENDED:
+                        widgettouched = false;
+                        homeapplongpressed = false;
 
                         return true;
 
