@@ -8,6 +8,8 @@ import androidx.core.view.MotionEventCompat;
 import androidx.palette.graphics.Palette;
 import androidx.viewpager.widget.ViewPager;
 import in.srain.cube.views.GridViewWithHeaderAndFooter;
+import io.github.douglasjunior.androidSimpleTooltip.ArrowDrawable;
+import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip;
 
 import android.annotation.SuppressLint;
 import android.app.AppOpsManager;
@@ -38,6 +40,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.text.Editable;
@@ -47,6 +50,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.DragEvent;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -55,6 +59,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -79,7 +84,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener,
+public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener,
         AppClickListener, AppDragListener, AppLongClickListener, NotificationInterface, FragmentLoadListener {
 
     private static final int MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 10;
@@ -94,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private GridViewWithHeaderAndFooter drawerGridView;
     private EditText searchbar;
     private PackageListener mPackageListener;
-    private PopupWindow popupWindow;
     private PopupWindow folderpopupwindow;
     private View bottomSheet;
     private List<HomescreenObject> homescreenObjects;
@@ -110,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View touchedwidget;
     private boolean scrolled = false;
     private View leftbar, rightbar;
-
+    private SimpleTooltip tooltip;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -125,6 +129,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     static int REQUEST_PICK_APPWIDGET = 10;
     static int REQUEST_CREATE_APPWIDGET = 11;
     static int appWidgetId;
+
+    final static Unsplash unsplash = new Unsplash("m7_7e-ldwcFyQ1SkbFJcNNFwE8TkIVWe1itmKvV3yrs");
+
+    final String[] categories = {"nature", "wildlife", "starry sky", "landscapes", "sexy", "monuments",
+            "natural history", "abstract", "amoled", "dark", "neon", "sensual", "lighthouse", "astronomy", "high quality",
+            "buildings", "Lingerie", "Summer", "airplanes", "moon", "cute", "dogs", "cats",
+            "gods", "marvel", "bikini", "sports", "india", "hawaii", "nude", "winter", "Christmas", "couple", "love",
+            "sweden", "europe", "fashion", "kiss", "romance", "Europe", "trending", "underwear", "bra", "blonde",
+            "funny", "quotes", "humor"};
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
@@ -238,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
 
                     double ratio = Math.abs((screenHight-(double)bottomSheet.getY())/screenHight);
-                    double alpha = 255 * ratio;
+                    double alpha = 238 * ratio;
                     bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
 
                 }
@@ -287,39 +300,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mPackageListener = new PackageListener();
         registerReceiver(mPackageListener, filter);
 
-        ImageView changeWallpaper = findViewById(R.id.changewallpaper);
-        final Unsplash unsplash = new Unsplash("m7_7e-ldwcFyQ1SkbFJcNNFwE8TkIVWe1itmKvV3yrs");
-
-        final String[] categories = {"nature", "wildlife", "starry sky", "landscapes", "sexy", "monuments",
-                "natural history", "abstract", "amoled", "dark", "neon", "sensual", "lighthouse", "astronomy", "high quality",
-                "buildings", "Lingerie", "Summer", "airplanes", "moon", "cute", "dogs", "cats",
-                "gods", "marvel", "bikini", "sports", "india", "hawaii", "nude", "winter", "Christmas", "couple", "love",
-                "sweden", "europe", "fashion", "kiss", "romance", "Europe", "trending", "underwear", "bra", "blonde",
-                "funny", "quotes", "humor"};
-
-        changeWallpaper.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                final int cat_index = (new Random()).nextInt(categories.length - 1);
-                unsplash.searchPhotos(categories[cat_index], 1, 10, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
-                    @Override
-                    public void onComplete(SearchResults results) {
-                        List<Photo> photos = results.getResults();
-                        int index = (new Random()).nextInt(photos.size()-1);
-                        Log.d("unsplash", "category: " + categories[cat_index] + ", photo number: " + index);
-                        setWallpaper(photos.get(index).getUrls().getRegular());
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        Log.d("unsplash", error);
-                        Toast.makeText(getBaseContext(), "Couldn't download. Try again", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-            }
-        });
-
         ImageView sortbtn = findViewById(R.id.sortbtn);
         sortbtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -354,7 +334,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onPageSelected(int position) {
-                //Log.d("PAGER", "onPageSelected");
 
             }
 
@@ -375,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d("COOK", "Dock entered");
+                        //Log.d("COOK", "Dock entered");
                         prepareDock();
                         return true;
 
@@ -393,6 +372,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
+        final Handler handler = new Handler();
+
         leftbar = findViewById(R.id.leftbar);
         leftbar.setOnDragListener(new View.OnDragListener() {
             @Override
@@ -403,16 +384,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d("COOK", "Scroll left");
+                        //Log.d("COOK", "Scroll left");
                         if(!scrolled) {
-                            try {
-                                vb.vibrate(20);
-                                pager.setCurrentItem(pager.getCurrentItem()-1);
-                            }
-                            catch (Exception e) {
-                                Log.d("COOK", "Can't scroll left anymore");
-                            }
-                            scrolled = true;
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        vb.vibrate(20);
+                                        pager.setCurrentItem(pager.getCurrentItem()-1);
+                                    }
+                                    catch (Exception e) {
+                                        //Log.d("COOK", "Can't scroll left anymore");
+                                    }
+                                    scrolled = true;
+                                }
+                            }, 300);
                         }
 
                         return true;
@@ -441,16 +427,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENTERED:
-                        Log.d("COOK", "Scroll right");
+                        //Log.d("COOK", "Scroll right");
                         if(!scrolled) {
-                            try {
-                                vb.vibrate(20);
-                                scrollToNextPage(pager.getCurrentItem());
-                            }
-                            catch (Exception e) {
-                                Log.d("COOK", "Can't scroll left anymore");
-                            }
-                            scrolled = true;
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        vb.vibrate(20);
+                                        scrollToNextPage(pager.getCurrentItem());
+                                    }
+                                    catch (Exception e) {
+                                    }
+                                    scrolled = true;
+                                }
+                            }, 300);
                         }
                         return true;
 
@@ -494,8 +484,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         hideKeypad();
-        if(popupWindow!=null && popupWindow.isShowing()) {
-            popupWindow.dismiss();
+        if(tooltip.isShowing()) {
+            tooltip.dismiss();
         }
 
         if(folderpopupwindow!=null && folderpopupwindow.isShowing()) {
@@ -515,8 +505,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         Bitmap bitmap = myapp.getAppicon();
         Palette p = Palette.from(bitmap).generate();
         String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
-        popupWindow = setPopupWindow(popupBg);
-        popupWindow.showAsDropDown(clickedView);
+
+        showAppContextMenu(clickedView, popupBg);
+
         longclicked=true;
     }
 
@@ -540,7 +531,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-                bottomSheet.setBackgroundColor(Color.WHITE);
+                bottomSheet.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
 
@@ -572,12 +563,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             vb.vibrate(30);
             if(touchedhomescreenobject!=null) {
                 if(touchedhomescreenobject.getFolder().size()==1) { // home screen app icon long clicked
-                    //Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().get(0).getAppname() + " long pressed", Toast.LENGTH_SHORT).show();
                     myapp = touchedhomescreenobject.getFolder().get(0);
                     homeapplongpressed = true;
                 }
                 else { // home screen folder clicked
-                    //Toast.makeText(getBaseContext(), touchedhomescreenobject.getFolder().size() + " long pressed", Toast.LENGTH_SHORT).show();
                 }
                 touchedhomescreenobject = null;
             }
@@ -614,7 +603,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(drawerExpanded) {
             hideKeypad();
             try {
-                popupWindow.dismiss();
+                tooltip.dismiss();
             } catch (Exception e) {}
             longclicked = false;
 
@@ -632,7 +621,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 //swipeup = true;
                 mBottomSheetBehavior.setPeekHeight(peek);
                 double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
-                double alpha = 255 * ratio;
+                double alpha = 238 * ratio;
                 bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
                 drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED;
                 //swipeup = !drawerExpanded;
@@ -737,7 +726,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             int wh = hostView.getMeasuredHeight();
             //Log.d("COOK", "before_width: " + ww + ", before_height: " + wh);
 
-            float scalingFactor = 0.8f; // scale down to half the size
+            float scalingFactor = 1.0f; // scale
             hostView.setScaleX(scalingFactor);
             hostView.setScaleY(scalingFactor);
 
@@ -753,6 +742,41 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         else {
             Log.d("VINIT", "createWidget: null data");
         }
+    }
+
+    // GestureDetector.OnDoubleTapListener
+
+    @Override
+    public boolean onSingleTapConfirmed(MotionEvent e) {
+        return false;
+    }
+
+    @Override
+    public boolean onDoubleTap(MotionEvent e) {
+
+        final int cat_index = (new Random()).nextInt(categories.length - 1);
+        unsplash.searchPhotos(categories[cat_index], 1, 10, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
+            @Override
+            public void onComplete(SearchResults results) {
+                List<Photo> photos = results.getResults();
+                int index = (new Random()).nextInt(photos.size()-1);
+                Log.d("unsplash", "category: " + categories[cat_index] + ", photo number: " + index);
+                setWallpaper(photos.get(index).getUrls().getRegular());
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.d("unsplash", error);
+                Toast.makeText(getBaseContext(), "Couldn't download. Try again", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        return false;
+    }
+
+    @Override
+    public boolean onDoubleTapEvent(MotionEvent e) {
+        return false;
     }
 
     public class PackageListener extends BroadcastReceiver { // need to fix
@@ -823,72 +847,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(in !=null) {
             startActivity(in);
         }
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    public PopupWindow setPopupWindow(String bgcolor) {
-        final PopupWindow popupWindow = new PopupWindow();
-        LayoutInflater inflater = (LayoutInflater)
-                getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-        View view = inflater.inflate(R.layout.popup_layout, null);
-        view.getBackground().setColorFilter(Color.parseColor(bgcolor), PorterDuff.Mode.SRC_ATOP);
-
-        view.measure(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        int measuredHeight = view.getMeasuredHeight();
-        int measuredWidth = view.getMeasuredWidth();
-
-        TextView header = view.findViewById(R.id.popup_header);
-        TextView info = view.findViewById(R.id.popup_appinfo);
-        TextView edit = view.findViewById(R.id.popup_edit);
-        TextView hide = view.findViewById(R.id.popup_hide);
-        TextView lock = view.findViewById(R.id.popup_lock);
-        TextView uninstall = view.findViewById(R.id.popup_uninstall);
-
-        String textColor;
-        double darkness = 1-(0.299*Color.red(Color.parseColor(bgcolor)) + 0.587*Color.green(Color.parseColor(bgcolor)) +
-                0.114*Color.blue(Color.parseColor(bgcolor)))/255;
-        if(darkness<0.5)
-            textColor="#000000";
-        else
-            textColor="#FFFFFF";
-
-        info.setTextColor(Color.parseColor(textColor));
-        edit.setTextColor(Color.parseColor(textColor));
-        hide.setTextColor(Color.parseColor(textColor));
-        lock.setTextColor(Color.parseColor(textColor));
-        uninstall.setTextColor(Color.parseColor(textColor));
-
-        header.setText(myapp.getAppname());
-
-        popupWindow.setFocusable(true);
-        popupWindow.setWidth((int) (measuredWidth * 1.15));
-        popupWindow.setHeight(measuredHeight);
-        popupWindow.setElevation(30.f);
-        popupWindow.setClippingEnabled(false);
-        popupWindow.setOverlapAnchor(true);
-        popupWindow.setTouchable(true);
-        popupWindow.setContentView(view);
-
-        info.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                intent.setData(Uri.parse("package:" + myapp.getPackagename()));
-                startActivity(intent);
-                popupWindow.dismiss();
-            }
-        });
-        uninstall.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
-                Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
-                startActivity(uninstallIntent);
-                popupWindow.dismiss();
-            }
-        });
-        return popupWindow;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -1050,6 +1008,26 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         int radius = Math.min(bmp.getWidth()/2, bmp.getHeight()/2) - ICON_SIZE;
         float cx = (float)bmp.getWidth()/2;
         float cy = (float)bmp.getHeight()/2;
+
+        /*ColorMatrix cm = new ColorMatrix();
+        cm.setSaturation(0);
+        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
+        paint.setColorFilter(f); // Grayscale bitmaps*/
+
+        /*float[] colorMatrix_Negative = {
+                -1.0f, 0, 0, 0, 255, //red
+                0, -1.0f, 0, 0, 255, //green
+                0, 0, -1.0f, 0, 255, //blue
+                0, 0, 0, 1.0f, 0 //alpha
+                 };
+        ColorMatrix colorMatrix = new ColorMatrix();
+        colorMatrix.set(colorMatrix_Negative);
+        ColorMatrixColorFilter f = new ColorMatrixColorFilter(colorMatrix);
+        paint.setColorFilter(f);*/ // Inverted colors
+
+        //Palette p = Palette.from(output).generate();
+        //String dominant = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
+
         canvas.drawCircle(cx, cy, radius, paint);
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
         canvas.drawBitmap(bmp, 0, 0, paint);
@@ -1179,7 +1157,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     case DragEvent.ACTION_DRAG_ENTERED:
 
                         try {
-                            popupWindow.dismiss();
+                            tooltip.dismiss();
                         } catch (Exception e) {
                         }
                         return true;
@@ -1207,7 +1185,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                     RelativeLayout.LayoutParams.WRAP_CONTENT); // size of the widget
                             params.topMargin = snap_row * (H / 6);
                             params.leftMargin = snap_col * (W / 5) + (W/10) - (ww/2);
-
 
                             widget_container.addView(touchedwidget, params);
                             widgettouched = false;
@@ -1375,12 +1352,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             }
                         }
 
+                        // If there are no apps or widgets on screen, then remove the page
+
+                        for(BlankPage p : pages) {
+                            if(p.getChildCount() == 0) {
+                                Log.d("COOK", "remove page at: " + pages.indexOf(p));
+                                pages.remove(p);
+                                pagerAdapter.notifyDataSetChanged();
+                            }
+                        }
+
                         return true;
 
                     case DragEvent.ACTION_DRAG_ENDED:
                         widgettouched = false;
                         homeapplongpressed = false;
-
                         return true;
 
                     default:
@@ -1650,17 +1636,89 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
     }
 
-    private View findView(float x, float y, ArrayList<View> targets)
-    {
-        final int count = targets.size();
-        for (int i = 0; i < count; i++) {
-            final View target = targets.get(i);
-            if (target.getRight() > x && target.getTop() < y
-                    && target.getBottom() > y && target.getLeft() < x) {
-                return target;
-            }
+    private void showAppContextMenu(final View anchorView, String bgcolor) {
+
+        int ycoord = anchorView.getTop();
+        LayoutInflater inflater = (LayoutInflater)
+                getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        View popupView = inflater.inflate(R.layout.app_context_menu_layout, null);
+
+        popupView.measure(0,0);
+        int popupheight = popupView.getMeasuredHeight();
+        int gravity = Gravity.TOP;
+        int arrowDir = ArrowDrawable.BOTTOM;
+
+        if(ycoord <= popupheight) {
+            gravity = Gravity.BOTTOM;
+            arrowDir = ArrowDrawable.TOP;
         }
-        return null;
+
+        tooltip = new SimpleTooltip.Builder(this)
+                .anchorView(anchorView)
+                .gravity(gravity)
+                .dismissOnOutsideTouch(true)
+                .dismissOnInsideTouch(false)
+                .modal(true)
+                .arrowDirection(arrowDir)
+                .arrowColor(Color.parseColor(bgcolor))
+                //.animated(true)
+                .margin(0.0f)
+                .overlayOffset(10.0f)
+                .arrowHeight(20.0f)
+                .arrowWidth(20.0f)
+                .contentView(R.layout.app_context_menu_layout)
+                .focusable(true)
+                .build();
+
+        LinearLayout ll = tooltip.findViewById(R.id.popupcontainer);
+        ll.setBackgroundColor(Color.parseColor(bgcolor));
+
+        final TextView appinfo = tooltip.findViewById(R.id.popup_appinfo);
+        final TextView edit = tooltip.findViewById(R.id.popup_edit);
+        final TextView hide = tooltip.findViewById(R.id.popup_hide);
+        final TextView lock = tooltip.findViewById(R.id.popup_lock);
+        final TextView uninstall = tooltip.findViewById(R.id.popup_uninstall);
+
+        String textColor;
+        double darkness = 1-(0.299*Color.red(Color.parseColor(bgcolor)) + 0.587*Color.green(Color.parseColor(bgcolor)) +
+                0.114*Color.blue(Color.parseColor(bgcolor)))/255;
+        if(darkness<0.5)
+            textColor="#000000";
+        else
+            textColor="#FFFFFF";
+
+        appinfo.setTextColor(Color.parseColor(textColor));
+        edit.setTextColor(Color.parseColor(textColor));
+        hide.setTextColor(Color.parseColor(textColor));
+        lock.setTextColor(Color.parseColor(textColor));
+        uninstall.setTextColor(Color.parseColor(textColor));
+
+        appinfo.findViewById(R.id.popup_appinfo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v2) {
+                if (tooltip.isShowing()) {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + myapp.getPackagename()));
+                    startActivity(intent);
+                    tooltip.dismiss();
+                }
+            }
+        });
+
+        uninstall.findViewById(R.id.popup_uninstall).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v2) {
+                if (tooltip.isShowing()) {
+                    Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
+                    Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
+                    startActivity(uninstallIntent);
+                    tooltip.dismiss();
+                }
+            }
+        });
+
+        tooltip.show();
     }
 
 }

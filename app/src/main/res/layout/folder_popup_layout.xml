@@ -3,7 +3,6 @@
     android:id="@+id/foldercontainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/popup_shape_bg"
     android:orientation="vertical">
 
     <TextView

@@ -62,4 +62,13 @@ public class BlankPage extends Fragment {
         return pageView;
     }
 
+    public int getChildCount() {
+        if(pageView!=null) {
+            RelativeLayout rl = pageView.findViewById(R.id.fragmentxml);
+            return rl.getChildCount();
+        }
+        else
+            return 0;
+    }
+
 }
