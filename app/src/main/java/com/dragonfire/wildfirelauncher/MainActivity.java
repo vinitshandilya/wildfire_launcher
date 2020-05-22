@@ -565,8 +565,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 if(touchedhomescreenobject.getFolder().size()==1) { // home screen app icon long clicked
                     myapp = touchedhomescreenobject.getFolder().get(0);
                     homeapplongpressed = true;
+                    Bitmap bitmap = myapp.getAppicon();
+                    Palette p = Palette.from(bitmap).generate();
+                    String popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
+                    showAppContextMenu(touchedhomescreenobject.getIcon(), popupBg);
+
                 }
                 else { // home screen folder clicked
+                    
                 }
                 touchedhomescreenobject = null;
             }
@@ -1349,6 +1355,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                         return false;
                                     }
                                 });
+
                             }
                         }
 
