@@ -58,6 +58,14 @@ public class HomescreenObject {
         this.y = y;
     }
 
+    public void setIcon(View icon) {
+        this.icon = icon;
+    }
+
+    public void setLabel(View label) {
+        this.label = label;
+    }
+
     public int getPageNo() {
         return pageNo;
     }

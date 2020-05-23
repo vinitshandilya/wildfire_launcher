@@ -572,7 +572,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                 }
                 else { // home screen folder clicked
-                    
+
                 }
                 touchedhomescreenobject = null;
             }
@@ -1678,8 +1678,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 .focusable(true)
                 .build();
 
-        LinearLayout ll = tooltip.findViewById(R.id.popupcontainer);
-        ll.setBackgroundColor(Color.parseColor(bgcolor));
+        RelativeLayout relativeLayout = tooltip.findViewById(R.id.popupcontainer);
+        relativeLayout.setBackgroundColor(Color.parseColor(bgcolor));
 
         final TextView appinfo = tooltip.findViewById(R.id.popup_appinfo);
         final TextView edit = tooltip.findViewById(R.id.popup_edit);

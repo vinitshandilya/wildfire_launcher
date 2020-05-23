@@ -1,64 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/popupcontainer"
-    android:layout_width="500dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/popup_appinfo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:drawableStart="@android:drawable/ic_menu_info_details"
-        android:drawablePadding="10dp"
-        android:paddingRight="20dp"
-        android:textSize="12sp"
-        android:gravity="center_vertical"
-        android:text="App info" />
+    <RelativeLayout
+        android:id="@+id/popupcontainer"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:background="@color/colorPrimary"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp">
 
-    <TextView
-        android:id="@+id/popup_edit"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:drawableLeft="@android:drawable/ic_menu_edit"
-        android:drawablePadding="10dp"
-        android:paddingRight="20dp"
-        android:textSize="12sp"
-        android:gravity="center_vertical"
-        android:text="Edit" />
+        <TextView
+            android:id="@+id/popup_appinfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableStart="@android:drawable/ic_menu_info_details"
+            android:drawablePadding="10dp"
+            android:paddingRight="20dp"
+            android:textSize="12sp"
+            android:gravity="center_vertical"
+            android:text="App info" />
 
-    <TextView
-        android:id="@+id/popup_hide"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:drawableLeft="@android:drawable/ic_menu_view"
-        android:drawablePadding="10dp"
-        android:paddingRight="20dp"
-        android:textSize="12sp"
-        android:gravity="center_vertical"
-        android:text="Hide" />
+        <TextView
+            android:id="@+id/popup_edit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/popup_appinfo"
+            android:drawableLeft="@android:drawable/ic_menu_edit"
+            android:drawablePadding="10dp"
+            android:paddingRight="20dp"
+            android:textSize="12sp"
+            android:gravity="center_vertical"
+            android:text="Edit" />
 
-    <TextView
-        android:id="@+id/popup_lock"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:drawableLeft="@android:drawable/ic_menu_agenda"
-        android:drawablePadding="10dp"
-        android:paddingRight="20dp"
-        android:textSize="12sp"
-        android:gravity="center_vertical"
-        android:text="Lock" />
+        <TextView
+            android:id="@+id/popup_hide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/popup_edit"
+            android:drawableLeft="@android:drawable/ic_menu_view"
+            android:drawablePadding="10dp"
+            android:paddingRight="20dp"
+            android:textSize="12sp"
+            android:gravity="center_vertical"
+            android:text="Hide" />
 
-    <TextView
-        android:id="@+id/popup_uninstall"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:drawableLeft="@android:drawable/ic_menu_delete"
-        android:drawablePadding="10dp"
-        android:paddingRight="20dp"
-        android:textSize="12sp"
-        android:gravity="center_vertical"
-        android:text="Uninstall" />
+        <TextView
+            android:id="@+id/popup_lock"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/popup_hide"
+            android:drawableLeft="@android:drawable/ic_menu_agenda"
+            android:drawablePadding="10dp"
+            android:paddingRight="20dp"
+            android:textSize="12sp"
+            android:gravity="center_vertical"
+            android:text="Lock" />
+
+        <TextView
+            android:id="@+id/popup_uninstall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/popup_lock"
+            android:drawableLeft="@android:drawable/ic_menu_delete"
+            android:drawablePadding="10dp"
+            android:paddingRight="20dp"
+            android:textSize="12sp"
+            android:gravity="center_vertical"
+            android:text="Uninstall" />
+
+
+
+
+    </RelativeLayout>
+
+
 
 
 
