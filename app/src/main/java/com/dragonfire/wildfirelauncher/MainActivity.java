@@ -114,8 +114,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View leftbar, rightbar;
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
-
-
+    private RelativeLayout homescreen;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -145,6 +144,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if(!notificationAccessAllowed()) {
+            Toast.makeText(this, "Please grant notification permission", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+            startActivity(intent);
+        }
+
+        AppOpsManager appOps = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
+        assert appOps != null;
+        int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), getPackageName());
+        if(mode != AppOpsManager.MODE_ALLOWED) {
+            finish();
+            startActivityForResult(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS), MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS);
+        }
 
         displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
@@ -190,12 +203,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         new MyNotificationListenerService().setListener(this);
 
-        if(! notificationAccessAllowed()) {
-            Toast.makeText(this, "Please grant notification permission", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
-            startActivity(intent);
-        }
-
         installedAppList = new ArrayList<>();
         homescreenObjects = new ArrayList<>();
         timeSortedApps = new ArrayList<>();
@@ -240,6 +247,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
+
+                    homescreen.setOnLongClickListener(new View.OnLongClickListener() {
+                        @Override
+                        public boolean onLongClick(View v) {
+                            selectWidget();
+                            return true;
+                        }
+                    });
                 }
 
             }
@@ -261,6 +276,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                                     | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR); // DARK STATUS ICONS.
+
                 }
             }
         });
@@ -469,11 +485,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onFragmentLoaded(View fragmentContainer, int index) { // will be called 1 by 1 for each page that will be loaded
         if(fragmentContainer!=null) {
-            RelativeLayout homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
+            homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
             homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
-
                     selectWidget();
                     return true;
                 }
@@ -618,7 +633,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             drawerAppLongClicked = false;
 
             if(event1.getY() <= event2.getY()) { // down scroll when drawer is expanded
-                //swipeup = false;
+                Log.d("COOK", "DOWN: " + peek);
                 if(peek<screenHight/2)
                     peek=0;
                 mBottomSheetBehavior.setPeekHeight(peek);
@@ -628,13 +643,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                //swipeup = true;
+                Log.d("COOK", "UP: " + peek);
                 mBottomSheetBehavior.setPeekHeight(peek);
                 double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
                 double alpha = 238 * ratio;
                 bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
                 drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED;
-                //swipeup = !drawerExpanded;
 
             }
 
@@ -685,6 +699,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
+
+            if(requestCode == MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS) {
+                Log.d("COOK", "usage stats permission granted");
+            }
+
             if (requestCode == REQUEST_PICK_APPWIDGET) {
                 Log.d("VINIT", "Configure widget");
                 configureWidget(data);
@@ -958,15 +977,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     private void sortAppsByTime() {
         timeSortedApps.clear();
-        AppOpsManager appOps = (AppOpsManager)
-                getSystemService(Context.APP_OPS_SERVICE);
-        assert appOps != null;
-        int mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
-                android.os.Process.myUid(), getPackageName());
-
-        if(mode != AppOpsManager.MODE_ALLOWED) {
-            startActivityForResult(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS), MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS);
-        }
 
         UsageStatsManager mUsageStatsManager = (UsageStatsManager) getSystemService(Context.USAGE_STATS_SERVICE);
         assert mUsageStatsManager != null;
@@ -1137,6 +1147,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         protected void onPostExecute(Void aVoid) {
             gridAdapter.notifyDataSetChanged();
             recentappadapter.notifyDataSetChanged();
+
+            //
+
         }
     }
 
