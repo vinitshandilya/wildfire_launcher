@@ -3,6 +3,7 @@ package com.dragonfire.wildfirelauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.MotionEventCompat;
 import androidx.palette.graphics.Palette;
@@ -11,6 +12,7 @@ import in.srain.cube.views.GridViewWithHeaderAndFooter;
 import io.github.douglasjunior.androidSimpleTooltip.ArrowDrawable;
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip;
 
+import android.animation.Animator;
 import android.app.AppOpsManager;
 import android.app.Notification;
 import android.app.WallpaperManager;
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
     private RelativeLayout homescreen;
+    private CoordinatorLayout coordinatorLayout;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -164,6 +167,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         screenHight = displaymetrics.heightPixels;
         screenWidth = displaymetrics.widthPixels;
         vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        coordinatorLayout = findViewById(R.id.coordinator_layout);
 
         // Get launcher dock
         dock = findViewById(R.id.dock);
@@ -251,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                         @Override
                         public boolean onLongClick(View v) {
-                            selectWidget();
+                            //selectWidget();
                             return true;
                         }
                     });
@@ -268,7 +273,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                     double ratio = Math.abs((screenHight-(double)bottomSheet.getY())/screenHight);
                     double alpha = 238 * ratio;
+                    Log.d("COOK", "DOWN SCROLL ALPHA: " + alpha);
                     bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+                    coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
 
                 }
                 if(!drawerExpanded) {
@@ -489,7 +496,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
-                    selectWidget();
+                    //selectWidget();
                     return true;
                 }
             });
@@ -573,6 +580,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
                 bottomSheet.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
+                coordinatorLayout.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
 
@@ -625,6 +633,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
         int peek = (int) (screenHight - event2.getY());
+
         if(drawerExpanded) {
             hideKeypad();
             try {
@@ -633,7 +642,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             drawerAppLongClicked = false;
 
             if(event1.getY() <= event2.getY()) { // down scroll when drawer is expanded
-                Log.d("COOK", "DOWN: " + peek);
                 if(peek<screenHight/2)
                     peek=0;
                 mBottomSheetBehavior.setPeekHeight(peek);
@@ -643,13 +651,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                Log.d("COOK", "UP: " + peek);
                 mBottomSheetBehavior.setPeekHeight(peek);
-                double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
-                double alpha = 238 * ratio;
-                bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
                 drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED;
 
+                double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
+                double alpha = 238 * ratio;
+                Log.d("COOK", "UPSCROLL ALPHA: " + alpha);
+                bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+                coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
             }
 
 
@@ -1214,7 +1223,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 label.setSingleLine();
                                 label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
                                 label.setTextColor(Color.WHITE);
-                                int pageno=0;
+                                int pageno=-1;
                                 if(targetLayout.getId() != dock.getId())
                                     pageno = currPageindex;
                                 HomescreenObject hso = new HomescreenObject(appgroup, snap_col, snap_row, false, appiconview, label, pageno);
