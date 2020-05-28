@@ -114,7 +114,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View leftbar, rightbar;
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
-    private RelativeLayout homescreen;
+    private RelativeLayout homescreen, indicatorlayout;
+
+    private boolean finger_lifted = true;
+    private float dist_y;
+    private float init_y;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
@@ -169,6 +173,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         // Get launcher dock
         dock = findViewById(R.id.dock);
+        indicatorlayout = findViewById(R.id.indicator_layout);
 
         // Define view pager
         pager = findViewById(R.id.vpPager);
@@ -500,6 +505,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             });
 
+            setUpDownGesture(homescreen);
+            setUpDownGesture(dock);
+            setUpDownGesture(indicatorlayout);
+
+
             prepareTargetArea(homescreen, index);
         }
     }
@@ -568,6 +578,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onDown(MotionEvent event) {
+        init_y = event.getRawY();
 
         return true;
     }
@@ -660,10 +671,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
-                drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
-                double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
-                double alpha = 238 * ratio;
+                //mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
+                //drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
+                //double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
+                //double alpha = 238 * ratio;
                 //Log.d("COOK", "UPSCROLL ALPHA: " + alpha);
                 //bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
                 //coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
@@ -1580,6 +1591,88 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         folderLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
         folderLabel.setTextColor(Color.WHITE);
         return new HomescreenObject(mergedFolder, hso1.getX(), hso1.getY(), true, folderImageView, folderLabel, hso1.getPageNo());
+    }
+
+    private void setUpDownGesture(RelativeLayout view) {
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch(event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        Log.d("COOK", "ACTION_DOWN");
+                        finger_lifted = false;
+                        dist_y = 0;
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        finger_lifted = false;
+                        dist_y = screenHight - event.getRawY();
+                        dist_y = Math.max(dist_y, 0);
+                        if(init_y > event.getRawY()) {
+                            //Log.d("COOK", "ACTION_MOVE UP: " + dist_y);
+                            mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
+                            drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
+
+
+                        }
+
+                        else {
+                            //Log.d("COOK", "ACTION_MOVE_DOWN: " + dist_y);
+                            if(dist_y > 200){ // swipe down
+                                if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+                                    try {
+                                        Object sbservice = getSystemService("statusbar");
+                                        Class<?> statusbarManager = Class.forName("android.app.StatusBarManager");
+                                        Method showsb;
+                                        showsb = statusbarManager.getMethod("expandNotificationsPanel");
+                                        showsb.invoke(sbservice);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                            }
+
+
+                        }
+
+                        return true;
+
+                    case MotionEvent.ACTION_UP:
+                        finger_lifted = true;
+                        Log.d("COOK", "ACTION_UP: dist_y: " + dist_y + " screenHeight/2: " + screenHight/2);
+
+                        if(dist_y >= screenHight/2) { // expand the drawer
+                            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                            getWindow().getDecorView().setSystemUiVisibility(
+                                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                            | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR); // DARK STATUS ICONS.
+
+                        }
+                        else { // collapse the drawer
+                            mBottomSheetBehavior.setPeekHeight(0, true);
+                            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                            //mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                            getWindow().getDecorView().setSystemUiVisibility(
+                                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
+                        }
+
+                        drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
+
+
+
+                        return true;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        Log.d("COOK", "ACTION_CANCEL");
+                        finger_lifted = true;
+                        return true;
+                }
+                return true;
+            }
+        });
     }
 
 }
