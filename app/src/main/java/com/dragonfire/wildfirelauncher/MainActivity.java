@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                         @Override
                         public boolean onLongClick(View v) {
-                            //selectWidget();
+                            selectWidget();
                             return true;
                         }
                     });
@@ -500,7 +500,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
-                    //selectWidget();
+                    selectWidget();
                     return true;
                 }
             });
@@ -508,8 +508,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             setUpDownGesture(homescreen);
             setUpDownGesture(dock);
             setUpDownGesture(indicatorlayout);
-
-
             prepareTargetArea(homescreen, index);
         }
     }
@@ -604,6 +602,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onLongPress(MotionEvent event) {
         scrolled = false; // or else left pane app drop won't work
+        vb.vibrate(20);
         if(widgettouched) {
             leftbar.setVisibility(View.VISIBLE);
             rightbar.setVisibility(View.VISIBLE);
@@ -622,9 +621,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             assert myview != null;
             RelativeLayout widget_container = myview.findViewById(R.id.fragmentxml);
             widget_container.removeView(touchedwidget);
-
-
-
+        }
+        else {
+            selectWidget();
         }
 
     }
