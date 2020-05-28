@@ -595,17 +595,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         }
         if(event2.getY() - event1.getY() > 200){ // swipe down
-            if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-                try {
-                    Object sbservice = getSystemService("statusbar");
-                    Class<?> statusbarManager = Class.forName("android.app.StatusBarManager");
-                    Method showsb;
-                    showsb = statusbarManager.getMethod("expandNotificationsPanel");
-                    showsb.invoke(sbservice);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            pullDownNotificationTray();
 
         }
         return true;
@@ -1612,25 +1602,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             //Log.d("COOK", "ACTION_MOVE UP: " + dist_y);
                             mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
                             drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
-
-
                         }
 
                         else {
                             //Log.d("COOK", "ACTION_MOVE_DOWN: " + dist_y);
                             if(dist_y > 200){ // swipe down
-                                if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-                                    try {
-                                        Object sbservice = getSystemService("statusbar");
-                                        Class<?> statusbarManager = Class.forName("android.app.StatusBarManager");
-                                        Method showsb;
-                                        showsb = statusbarManager.getMethod("expandNotificationsPanel");
-                                        showsb.invoke(sbservice);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-
+                                pullDownNotificationTray();
                             }
 
 
@@ -1673,6 +1650,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 return true;
             }
         });
+    }
+
+    public void pullDownNotificationTray() {
+        if(mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+            try {
+                Object sbservice = getSystemService("statusbar");
+                Class<?> statusbarManager = Class.forName("android.app.StatusBarManager");
+                Method showsb;
+                showsb = statusbarManager.getMethod("expandNotificationsPanel");
+                showsb.invoke(sbservice);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }
