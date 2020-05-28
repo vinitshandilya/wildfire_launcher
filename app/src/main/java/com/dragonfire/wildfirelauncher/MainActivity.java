@@ -115,8 +115,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
     private RelativeLayout homescreen, indicatorlayout;
+    private boolean homescreenObjectTouched = false;
 
-    private boolean finger_lifted = true;
     private float dist_y;
     private float init_y;
 
@@ -622,24 +622,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             RelativeLayout widget_container = myview.findViewById(R.id.fragmentxml);
             widget_container.removeView(touchedwidget);
         }
+
         else {
-            selectWidget();
+            if(mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                if(!homescreenObjectTouched) {
+                    Log.d("COOK", homeAppLongClicked + "");
+                    selectWidget();
+
+                }
+            }
         }
 
     }
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
-
-        /*Log.d("COOK", "\tevent1_X: " + event1.getRawX() + "\tevent1_Y: " + event1.getRawY() +
-                "\tevent2_X: " + event2.getRawX() + "\tevent2_Y: " + event2.getRawY() +
-                "\tdistanceX: " + distanceX + "\tdistanceY: " + distanceY);*/
-
-
-        dragdist_y = dragdist_y + distanceY;
-        dragdist_y = Math.max(0, dragdist_y);
-
-        Log.d("COOK", "\tdragdist_y: " + dragdist_y);
 
         int peek = (int) (screenHight - event2.getY());
 
@@ -660,7 +657,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                //mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
+                dragdist_y = dragdist_y + distanceY;
+                dragdist_y = Math.max(0, dragdist_y);
                 //drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
                 //double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
                 //double alpha = 238 * ratio;
@@ -1495,6 +1493,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
+        //------------ Detect initial touch on added homescreenobject ------------//
+        //---- This is needed for distinguishing between long clicks on empty screen
+        // or clicks on the homescreen app objects.
+
+        clickedHso.getIconView().setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    homescreenObjectTouched = true;
+                }
+                return false;
+            }
+        });
+
         //------------ Attach long click listener on added homescreenobject ------------//
 
         clickedHso.getIconView().setOnLongClickListener(new View.OnLongClickListener() {
@@ -1503,6 +1515,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 Log.d("COOK", "Long clicked");
                 homeAppLongClicked = true;
                 longClickedHomeApp = clickedHso;
+                homescreenObjectTouched = false;
                 scrolled = false; // or else left pane app drop won't work
 
                 String popupBg = "#FFFFFF";
@@ -1588,35 +1601,28 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             public boolean onTouch(View v, MotionEvent event) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        Log.d("COOK", "ACTION_DOWN");
-                        finger_lifted = false;
                         dist_y = 0;
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
-                        finger_lifted = false;
+                        //finger_lifted = false;
                         dist_y = screenHight - event.getRawY();
                         dist_y = Math.max(dist_y, 0);
-                        if(init_y > event.getRawY()) {
-                            //Log.d("COOK", "ACTION_MOVE UP: " + dist_y);
+                        if(init_y > event.getRawY()) { // scroll up
                             mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
-                            drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
                         }
-
-                        else {
+                        else { //scroll down
                             //Log.d("COOK", "ACTION_MOVE_DOWN: " + dist_y);
                             if(dist_y > 200){ // swipe down
                                 pullDownNotificationTray();
                             }
-
-
                         }
+                        drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
 
                         return true;
 
                     case MotionEvent.ACTION_UP:
-                        finger_lifted = true;
-                        Log.d("COOK", "ACTION_UP: dist_y: " + dist_y + " screenHeight/2: " + screenHight/2);
+                        dragdist_y = 0;
 
                         if(dist_y >= screenHight/2) { // expand the drawer
                             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -1627,9 +1633,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                         }
                         else { // collapse the drawer
-                            mBottomSheetBehavior.setPeekHeight(0, true);
-                            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                            //mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                            //mBottomSheetBehavior.setPeekHeight(0, true);
+                            //mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                            mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
                             getWindow().getDecorView().setSystemUiVisibility(
                                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
@@ -1642,8 +1648,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return true;
 
                     case MotionEvent.ACTION_CANCEL:
-                        Log.d("COOK", "ACTION_CANCEL");
-                        finger_lifted = true;
+                        mBottomSheetBehavior.setPeekHeight(0, true);
+                        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                        drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
                         return true;
                 }
                 return true;
