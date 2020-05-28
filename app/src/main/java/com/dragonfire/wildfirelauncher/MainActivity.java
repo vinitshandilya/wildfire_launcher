@@ -3,7 +3,6 @@ package com.dragonfire.wildfirelauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.MotionEventCompat;
 import androidx.palette.graphics.Palette;
@@ -12,7 +11,6 @@ import in.srain.cube.views.GridViewWithHeaderAndFooter;
 import io.github.douglasjunior.androidSimpleTooltip.ArrowDrawable;
 import io.github.douglasjunior.androidSimpleTooltip.SimpleTooltip;
 
-import android.animation.Animator;
 import android.app.AppOpsManager;
 import android.app.Notification;
 import android.app.WallpaperManager;
@@ -117,10 +115,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
     private RelativeLayout homescreen;
-    private CoordinatorLayout coordinatorLayout;
 
     DisplayMetrics displaymetrics;
     int screenHight, screenWidth;
+
+    float dragdist_y = 0;
 
     AppObject myapp;
     HomescreenObject longClickedHomeApp;
@@ -167,8 +166,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         screenHight = displaymetrics.heightPixels;
         screenWidth = displaymetrics.widthPixels;
         vb = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-        coordinatorLayout = findViewById(R.id.coordinator_layout);
 
         // Get launcher dock
         dock = findViewById(R.id.dock);
@@ -234,6 +231,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 //currentDrawerState = newState;
+                dragdist_y = 0;
                 if(newState == BottomSheetBehavior.STATE_HIDDEN && drawerGridView.getChildAt(0).getY()!=0) {
                     //mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 }
@@ -266,6 +264,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
                 if(drawerExpanded) {
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -273,9 +272,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                     double ratio = Math.abs((screenHight-(double)bottomSheet.getY())/screenHight);
                     double alpha = 238 * ratio;
-                    Log.d("COOK", "DOWN SCROLL ALPHA: " + alpha);
-                    bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
-                    coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+                    //Log.d("COOK", "DOWN SCROLL ALPHA: " + alpha);
+                    //bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+                    //coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
 
                 }
                 if(!drawerExpanded) {
@@ -501,7 +500,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             });
 
-
             prepareTargetArea(homescreen, index);
         }
     }
@@ -579,8 +577,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
         if(event1.getY() - event2.getY() > 200){ // swipe up
             if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-                bottomSheet.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
-                coordinatorLayout.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
+                //bottomSheet.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
+                //coordinatorLayout.setBackgroundColor(Color.parseColor("#EEFFFFFF"));
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             }
 
@@ -632,6 +630,17 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     @Override
     public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
+
+        /*Log.d("COOK", "\tevent1_X: " + event1.getRawX() + "\tevent1_Y: " + event1.getRawY() +
+                "\tevent2_X: " + event2.getRawX() + "\tevent2_Y: " + event2.getRawY() +
+                "\tdistanceX: " + distanceX + "\tdistanceY: " + distanceY);*/
+
+
+        dragdist_y = dragdist_y + distanceY;
+        dragdist_y = Math.max(0, dragdist_y);
+
+        Log.d("COOK", "\tdragdist_y: " + dragdist_y);
+
         int peek = (int) (screenHight - event2.getY());
 
         if(drawerExpanded) {
@@ -651,14 +660,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
         else {
             if(event1.getY() > event2.getY()) { // upward scroll when drawer is not open
-                mBottomSheetBehavior.setPeekHeight(peek);
-                drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED;
-
+                mBottomSheetBehavior.setPeekHeight((int)dragdist_y);
+                drawerExpanded = mBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED; // true or false
                 double ratio = Math.abs((double)mBottomSheetBehavior.getPeekHeight()/screenHight);
                 double alpha = 238 * ratio;
-                Log.d("COOK", "UPSCROLL ALPHA: " + alpha);
-                bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
-                coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+                //Log.d("COOK", "UPSCROLL ALPHA: " + alpha);
+                //bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
+                //coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
             }
 
 
