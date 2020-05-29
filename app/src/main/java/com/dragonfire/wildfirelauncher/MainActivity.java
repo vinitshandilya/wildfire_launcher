@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View leftbar, rightbar;
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
-    private RelativeLayout homescreen, indicatorlayout;
+    private RelativeLayout homescreen, indicatorlayout, droparea;
     private boolean homeApptouched = false;
     private HomescreenObject touchedHomeApp;
 
@@ -627,18 +627,69 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             else {
                 // Either long clicked on empty area
                 // or long clicked on the home app
-                if(homeApptouched && touchedHomeApp!=null) {
+                if(homeApptouched && touchedHomeApp!=null && droparea!=null) { // long click on home app
                     //show context menu
+                    //make home apps draggable
+                    String popupBg = "#FFFFFF";
+                    if(!touchedHomeApp.isDir()) {
+                        myapp = touchedHomeApp.getFolder().get(0);
+                        Bitmap bitmap = myapp.getAppicon();
+                        Palette p = Palette.from(bitmap).generate();
+                        popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
+                    }
+                    showAppContextMenu(touchedHomeApp.getIconView(), popupBg);
+
+                    touchedHomeApp.getIconView().setOnTouchListener(new View.OnTouchListener() {
+                        @Override
+                        public boolean onTouch(View v, MotionEvent event) {
+                            switch(event.getAction()) {
+                                case MotionEvent.ACTION_DOWN:
+                                    break;
+                                case MotionEvent.ACTION_MOVE:
+                                    tooltip.dismiss();
+
+                                    leftbar.setVisibility(View.VISIBLE);
+                                    rightbar.setVisibility(View.VISIBLE);
+
+                                    ClipData.Item item = new ClipData.Item(touchedHomeApp.getLabel()+"~"+touchedHomeApp.getIconView());
+                                    ClipData dragData = new ClipData(
+                                            (CharSequence) touchedHomeApp.getIconView().getTag(),
+                                            new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                                            item);
+                                    touchedHomeApp.getIconView().startDrag(dragData,  // the data to be dragged
+                                            new View.DragShadowBuilder(touchedHomeApp.getIconView()),  // the drag shadow builder
+                                            null,      // no need to use local data
+                                            0          // flags (not currently used, set to 0)
+                                    );
+
+                                    droparea.removeView(touchedHomeApp.getIconView());
+                                    droparea.removeView(touchedHomeApp.getLabel());
+
+                                    for (HomescreenObject hso : homescreenObjects) {
+                                        if (hso.getX() == touchedHomeApp.getX() && hso.getY() == touchedHomeApp.getY()) {
+                                            homescreenObjects.remove(hso);
+                                            break;
+                                        }
+                                    }
+                                    break;
+
+                                case MotionEvent.ACTION_CANCEL:
+                                    break;
+
+                            }
+                            return false;
+                        }
+                    });
+
+                    homeApptouched = false;
+                    touchedHomeApp = null;
+                    droparea = null;
                 }
-                else {
+                else { // no conditions met, open widget selector
                     selectWidget();
                 }
-
-
             }
-
         }
-
     }
 
     @Override
@@ -1479,6 +1530,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         }
 
+        //------------ set Touch listener. will be used for long press detection ------------//
+
         final HomescreenObject clickedHso = hso;
         clickedHso.getIconView().setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -1486,6 +1539,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
                     homeApptouched = true;
                     touchedHomeApp = clickedHso;
+                    droparea = targetLayout;
                 }
                 return false;
             }
@@ -1508,72 +1562,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
+        // Long click on home apps are managed under onLongPress method
+        // No need to attach longclick listener here
+        // This is why onTouchListener is set-up
 
 
-        //------------ Attach long click listener on added homescreenobject ------------//
-
-        clickedHso.getIconView().setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                Log.d("CHIKU", "Home app long clicked: " + clickedHso.getFolder().get(0).getAppname());
-                homeAppLongClicked = true;
-                longClickedHomeApp = clickedHso;
-                scrolled = false; // or else left pane app drop won't work
-
-                String popupBg = "#FFFFFF";
-                if(!clickedHso.isDir()) {
-                    myapp = clickedHso.getFolder().get(0);
-                    Bitmap bitmap = myapp.getAppicon();
-                    Palette p = Palette.from(bitmap).generate();
-                    popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
-                }
-                showAppContextMenu(clickedHso.getIconView(), popupBg);
-
-                clickedHso.getIconView().setOnTouchListener(new View.OnTouchListener() {
-                    @Override
-                    public boolean onTouch(View v, MotionEvent event) {
-                        switch(event.getAction()) {
-                            case MotionEvent.ACTION_DOWN:
-                                break;
-                            case MotionEvent.ACTION_MOVE:
-                                tooltip.dismiss();
-
-                                leftbar.setVisibility(View.VISIBLE);
-                                rightbar.setVisibility(View.VISIBLE);
-
-                                ClipData.Item item = new ClipData.Item(clickedHso.getLabel()+"~"+clickedHso.getIconView());
-                                ClipData dragData = new ClipData(
-                                        (CharSequence) clickedHso.getIconView().getTag(),
-                                        new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                                        item);
-                                clickedHso.getIconView().startDrag(dragData,  // the data to be dragged
-                                        new View.DragShadowBuilder(clickedHso.getIconView()),  // the drag shadow builder
-                                        null,      // no need to use local data
-                                        0          // flags (not currently used, set to 0)
-                                );
-
-                                targetLayout.removeView(clickedHso.getIconView());
-                                targetLayout.removeView(clickedHso.getLabel());
-
-                                for (HomescreenObject hso : homescreenObjects) {
-                                    if (hso.getX() == clickedHso.getX() && hso.getY() == clickedHso.getY()) {
-                                        homescreenObjects.remove(hso);
-                                        break;
-                                    }
-                                }
-                                break;
-
-                            case MotionEvent.ACTION_CANCEL:
-                                break;
-
-                        }
-                        return false;
-                    }
-                });
-
-                return true;
-            }
-        });
 
     }
 
