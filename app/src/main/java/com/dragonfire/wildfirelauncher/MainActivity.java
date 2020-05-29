@@ -115,7 +115,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
     private RelativeLayout homescreen, indicatorlayout;
-    private boolean homescreenObjectTouched = false;
+    private boolean homeApptouched = false;
+    private HomescreenObject touchedHomeApp;
 
     private float dist_y;
     private float init_y;
@@ -256,13 +257,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN); // LIGHT STATUS ICONS.
 
-                    homescreen.setOnLongClickListener(new View.OnLongClickListener() {
+                    /*homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                         @Override
                         public boolean onLongClick(View v) {
-                            selectWidget();
+                            //selectWidget();
                             return true;
                         }
-                    });
+                    });*/
                 }
 
             }
@@ -497,13 +498,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onFragmentLoaded(View fragmentContainer, int index) { // will be called 1 by 1 for each page that will be loaded
         if(fragmentContainer!=null) {
             homescreen = fragmentContainer.findViewById(R.id.fragmentxml);
-            homescreen.setOnLongClickListener(new View.OnLongClickListener() {
+            /*homescreen.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
                     selectWidget();
                     return true;
                 }
-            });
+            });*/
 
             setUpDownGesture(homescreen);
             setUpDownGesture(dock);
@@ -602,35 +603,40 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public void onLongPress(MotionEvent event) {
         scrolled = false; // or else left pane app drop won't work
-        vb.vibrate(20);
-        if(widgettouched) {
-            leftbar.setVisibility(View.VISIBLE);
-            rightbar.setVisibility(View.VISIBLE);
-            ClipData.Item item = new ClipData.Item("test" + "~" + "test");
-            ClipData dragData = new ClipData(
-                    (CharSequence) touchedwidget.getTag(),
-                    new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
-                    item);
-            touchedwidget.startDrag(dragData,  // the data to be dragged
-                    new View.DragShadowBuilder(touchedwidget),  // the drag shadow builder
-                    null,      // no need to use local data
-                    0          // flags (not currently used, set to 0)
-            );
+        if(mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+            vb.vibrate(20);
+            if(widgettouched) {
+                leftbar.setVisibility(View.VISIBLE);
+                rightbar.setVisibility(View.VISIBLE);
+                ClipData.Item item = new ClipData.Item("test" + "~" + "test");
+                ClipData dragData = new ClipData(
+                        (CharSequence) touchedwidget.getTag(),
+                        new String[]{ClipDescription.MIMETYPE_TEXT_PLAIN},
+                        item);
+                touchedwidget.startDrag(dragData,  // the data to be dragged
+                        new View.DragShadowBuilder(touchedwidget),  // the drag shadow builder
+                        null,      // no need to use local data
+                        0          // flags (not currently used, set to 0)
+                );
 
-            View myview = getSupportFragmentManager().getFragments().get(pager.getCurrentItem()).getView();
-            assert myview != null;
-            RelativeLayout widget_container = myview.findViewById(R.id.fragmentxml);
-            widget_container.removeView(touchedwidget);
-        }
-
-        else {
-            if(mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-                if(!homescreenObjectTouched) {
-                    Log.d("COOK", homeAppLongClicked + "");
-                    selectWidget();
-
-                }
+                View myview = getSupportFragmentManager().getFragments().get(pager.getCurrentItem()).getView();
+                assert myview != null;
+                RelativeLayout widget_container = myview.findViewById(R.id.fragmentxml);
+                widget_container.removeView(touchedwidget);
             }
+            else {
+                // Either long clicked on empty area
+                // or long clicked on the home app
+                if(homeApptouched && touchedHomeApp!=null) {
+                    //show context menu
+                }
+                else {
+                    selectWidget();
+                }
+
+
+            }
+
         }
 
     }
@@ -1219,7 +1225,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             final int snap_col = Math.round(cursor_x / (W / 5));
 
                             if(drawerAppLongClicked) { // app dragged from drawer, drop on homescreen
-                                //Log.d("COOK", "App long clicked");
+                                Log.d("CHIKU", "Drawer app long clicked: " + myapp.getAppname());
                                 drawerAppLongClicked = false;
                                 appgroup.add(myapp);
                                 ImageView appiconview = new ImageView(getBaseContext());
@@ -1236,7 +1242,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 addToHomeScreen(hso, targetLayout, W, H);
                             }
 
-                            if(homeAppLongClicked) { // dragged hso already on homescreen, drop on homescreen
+                            else if(homeAppLongClicked) { // dragged hso already on homescreen, drop on homescreen
+                                Log.d("CHIKU", "Home app long clicked: " + longClickedHomeApp.getFolder().get(0).getAppname());
                                 homeAppLongClicked = false;
                                 //Log.d("COOK", "Home app long clicked");
                                 longClickedHomeApp.setY(snap_row);
@@ -1270,10 +1277,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             pagerAdapter.notifyDataSetChanged();
         }
         pager.setCurrentItem(currentindex + 1, true);
-
-
-
-
     }
 
     private class CustomAppWidgetHost extends AppWidgetHost {
@@ -1476,8 +1479,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         }
 
-        //------------ Attach click listener on added homescreenobject ------------//
         final HomescreenObject clickedHso = hso;
+        clickedHso.getIconView().setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    homeApptouched = true;
+                    touchedHomeApp = clickedHso;
+                }
+                return false;
+            }
+        });
+
+        //------------ Attach click listener on added homescreenobject ------------//
+
         clickedHso.getIconView().setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.M) // required for setFolderPopup
             @Override
@@ -1493,33 +1508,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         });
 
-        //------------ Detect initial touch on added homescreenobject ------------//
-        //---- This is needed for distinguishing between long clicks on empty screen
-        // or clicks on the homescreen app objects.
 
-        clickedHso.getIconView().setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                    homescreenObjectTouched = true;
-                }
-                return false;
-            }
-        });
 
         //------------ Attach long click listener on added homescreenobject ------------//
 
         clickedHso.getIconView().setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                Log.d("COOK", "Long clicked");
+                Log.d("CHIKU", "Home app long clicked: " + clickedHso.getFolder().get(0).getAppname());
                 homeAppLongClicked = true;
                 longClickedHomeApp = clickedHso;
-                homescreenObjectTouched = false;
                 scrolled = false; // or else left pane app drop won't work
 
                 String popupBg = "#FFFFFF";
                 if(!clickedHso.isDir()) {
+                    myapp = clickedHso.getFolder().get(0);
                     Bitmap bitmap = myapp.getAppicon();
                     Palette p = Palette.from(bitmap).generate();
                     popupBg = String.format("#%06X", (0xFFFFFF & p.getDominantColor(Color.BLACK)));
@@ -1558,6 +1561,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                         break;
                                     }
                                 }
+                                break;
+
+                            case MotionEvent.ACTION_CANCEL:
+                                break;
 
                         }
                         return false;
