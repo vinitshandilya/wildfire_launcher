@@ -57,4 +57,7 @@ class HomescreenObject {
         return pageNo;
     }
 
+    public void setPageNo(int pageNo) {
+        this.pageNo = pageNo;
+    }
 }

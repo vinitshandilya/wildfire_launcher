@@ -1259,6 +1259,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 //Log.d("COOK", "Home app long clicked");
                                 longClickedHomeApp.setY(snap_row);
                                 longClickedHomeApp.setX(snap_col);
+                                if(targetLayout.getId() == dock.getId()) {
+                                    longClickedHomeApp.setPageNo(-1);
+                                }
                                 addToHomeScreen(longClickedHomeApp, targetLayout, W, H);
                                 homeAppLongClicked = false;
                             }
@@ -1277,160 +1280,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 }
             }
         });
-    }
-
-    public void scrollToNextPage(int currentindex) {
-        //newpagereqd = false;
-        if(currentindex == pages.size()-1) {
-            int pageno = currentindex + 2;
-            BlankPage anotherpage = BlankPage.newInstance("New", "Page-" + pageno, currentindex + 1);
-            anotherpage.setmFragmentLoadListener(this);
-            pages.add(anotherpage);
-            pagerAdapter.notifyDataSetChanged();
-        }
-        pager.setCurrentItem(currentindex + 1, true);
-    }
-
-    private class CustomAppWidgetHost extends AppWidgetHost {
-
-        CustomAppWidgetHost(Context context, int hostId) {
-            super(context, hostId);
-        }
-
-        @Override
-        protected AppWidgetHostView onCreateView(Context context, int appWidgetId, AppWidgetProviderInfo appWidget) {
-            // pass back our custom AppWidgetHostView
-            return new CustomAppWidgetHostView(context);
-        }
-    }
-
-    private class CustomAppWidgetHostView extends AppWidgetHostView {
-
-        private OnLongClickListener longClick;
-        private long down;
-
-        public CustomAppWidgetHostView(Context context) {
-            super(context);
-        }
-
-        public CustomAppWidgetHostView(Context context, int animationIn, int animationOut) {
-            super(context, animationIn, animationOut);
-        }
-
-        @Override
-        public void setOnLongClickListener(OnLongClickListener l) {
-            this.longClick = l;
-        }
-
-        @Override
-        public boolean onInterceptTouchEvent(MotionEvent ev) {
-            switch(MotionEventCompat.getActionMasked( ev ) ) {
-
-                case MotionEvent.ACTION_DOWN:
-                    Log.d("COOK", "widget touched down");
-                    widgettouched = true;
-                    touchedwidget = CustomAppWidgetHostView.this;
-                    down = System.currentTimeMillis();
-                    break;
-
-                case MotionEvent.ACTION_MOVE:
-                    boolean upVal = System.currentTimeMillis() - down > 300L;
-                    if( upVal ) {
-                        longClick.onLongClick( CustomAppWidgetHostView.this );
-                        Log.d("COOK", "Widget long clicked");
-                    }
-                    break;
-            }
-            return false;
-        }
-    }
-
-    private void showAppContextMenu(final View anchorView, String bgcolor, boolean showindock) {
-
-        int ycoord = anchorView.getTop();
-        LayoutInflater inflater = (LayoutInflater)
-                getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-        View popupView = inflater.inflate(R.layout.app_context_menu_layout, null);
-
-        popupView.measure(0,0);
-        int popupheight = popupView.getMeasuredHeight();
-        int gravity = Gravity.TOP;
-        int arrowDir = ArrowDrawable.BOTTOM;
-
-        if(ycoord <= popupheight && !showindock) {
-            gravity = Gravity.BOTTOM;
-            arrowDir = ArrowDrawable.TOP;
-        }
-
-        tooltip = new SimpleTooltip.Builder(this)
-                .anchorView(anchorView)
-                .gravity(gravity)
-                .dismissOnOutsideTouch(true)
-                .dismissOnInsideTouch(false)
-                .modal(true)
-                .arrowDirection(arrowDir)
-                .arrowColor(Color.parseColor(bgcolor))
-                //.animated(true)
-                .margin(0.0f)
-                .overlayOffset(10.0f)
-                .arrowHeight(20.0f)
-                .arrowWidth(20.0f)
-                .contentView(R.layout.app_context_menu_layout)
-                .focusable(true)
-                .build();
-
-        LinearLayout popuplayout = tooltip.findViewById(R.id.popupcontainer);
-        GradientDrawable drawable =  new GradientDrawable();
-        drawable.setCornerRadius(30);
-        drawable.setColor(Color.parseColor(bgcolor));
-        popuplayout.setBackground(drawable);
-
-        final TextView appinfo = tooltip.findViewById(R.id.popup_appinfo);
-        final TextView edit = tooltip.findViewById(R.id.popup_edit);
-        final TextView hide = tooltip.findViewById(R.id.popup_hide);
-        final TextView lock = tooltip.findViewById(R.id.popup_lock);
-        final TextView uninstall = tooltip.findViewById(R.id.popup_uninstall);
-
-        String textColor;
-        double darkness = 1-(0.299*Color.red(Color.parseColor(bgcolor)) + 0.587*Color.green(Color.parseColor(bgcolor)) +
-                0.114*Color.blue(Color.parseColor(bgcolor)))/255;
-        if(darkness<0.5)
-            textColor="#000000";
-        else
-            textColor="#FFFFFF";
-
-        appinfo.setTextColor(Color.parseColor(textColor));
-        edit.setTextColor(Color.parseColor(textColor));
-        hide.setTextColor(Color.parseColor(textColor));
-        lock.setTextColor(Color.parseColor(textColor));
-        uninstall.setTextColor(Color.parseColor(textColor));
-
-        appinfo.findViewById(R.id.popup_appinfo).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v2) {
-                if (tooltip.isShowing()) {
-                    Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    intent.setData(Uri.parse("package:" + myapp.getPackagename()));
-                    startActivity(intent);
-                    tooltip.dismiss();
-                }
-            }
-        });
-
-        uninstall.findViewById(R.id.popup_uninstall).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v2) {
-                if (tooltip.isShowing()) {
-                    Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
-                    Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
-                    startActivity(uninstallIntent);
-                    tooltip.dismiss();
-                }
-            }
-        });
-
-        tooltip.show();
     }
 
     private void addToHomeScreen(HomescreenObject hso, final RelativeLayout targetLayout, int W, int H) {
@@ -1591,6 +1440,160 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 return false;
             }
         });
+    }
+
+    public void scrollToNextPage(int currentindex) {
+        //newpagereqd = false;
+        if(currentindex == pages.size()-1) {
+            int pageno = currentindex + 2;
+            BlankPage anotherpage = BlankPage.newInstance("New", "Page-" + pageno, currentindex + 1);
+            anotherpage.setmFragmentLoadListener(this);
+            pages.add(anotherpage);
+            pagerAdapter.notifyDataSetChanged();
+        }
+        pager.setCurrentItem(currentindex + 1, true);
+    }
+
+    private class CustomAppWidgetHost extends AppWidgetHost {
+
+        CustomAppWidgetHost(Context context, int hostId) {
+            super(context, hostId);
+        }
+
+        @Override
+        protected AppWidgetHostView onCreateView(Context context, int appWidgetId, AppWidgetProviderInfo appWidget) {
+            // pass back our custom AppWidgetHostView
+            return new CustomAppWidgetHostView(context);
+        }
+    }
+
+    private class CustomAppWidgetHostView extends AppWidgetHostView {
+
+        private OnLongClickListener longClick;
+        private long down;
+
+        public CustomAppWidgetHostView(Context context) {
+            super(context);
+        }
+
+        public CustomAppWidgetHostView(Context context, int animationIn, int animationOut) {
+            super(context, animationIn, animationOut);
+        }
+
+        @Override
+        public void setOnLongClickListener(OnLongClickListener l) {
+            this.longClick = l;
+        }
+
+        @Override
+        public boolean onInterceptTouchEvent(MotionEvent ev) {
+            switch(MotionEventCompat.getActionMasked( ev ) ) {
+
+                case MotionEvent.ACTION_DOWN:
+                    Log.d("COOK", "widget touched down");
+                    widgettouched = true;
+                    touchedwidget = CustomAppWidgetHostView.this;
+                    down = System.currentTimeMillis();
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    boolean upVal = System.currentTimeMillis() - down > 300L;
+                    if( upVal ) {
+                        longClick.onLongClick( CustomAppWidgetHostView.this );
+                        Log.d("COOK", "Widget long clicked");
+                    }
+                    break;
+            }
+            return false;
+        }
+    }
+
+    private void showAppContextMenu(final View anchorView, String bgcolor, boolean showindock) {
+
+        int ycoord = anchorView.getTop();
+        LayoutInflater inflater = (LayoutInflater)
+                getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        View popupView = inflater.inflate(R.layout.app_context_menu_layout, null);
+
+        popupView.measure(0,0);
+        int popupheight = popupView.getMeasuredHeight();
+        int gravity = Gravity.TOP;
+        int arrowDir = ArrowDrawable.BOTTOM;
+
+        if(ycoord <= popupheight && !showindock) {
+            gravity = Gravity.BOTTOM;
+            arrowDir = ArrowDrawable.TOP;
+        }
+
+        tooltip = new SimpleTooltip.Builder(this)
+                .anchorView(anchorView)
+                .gravity(gravity)
+                .dismissOnOutsideTouch(true)
+                .dismissOnInsideTouch(false)
+                .modal(true)
+                .arrowDirection(arrowDir)
+                .arrowColor(Color.parseColor(bgcolor))
+                //.animated(true)
+                .margin(0.0f)
+                .overlayOffset(10.0f)
+                .arrowHeight(20.0f)
+                .arrowWidth(20.0f)
+                .contentView(R.layout.app_context_menu_layout)
+                .focusable(true)
+                .build();
+
+        LinearLayout popuplayout = tooltip.findViewById(R.id.popupcontainer);
+        GradientDrawable drawable =  new GradientDrawable();
+        drawable.setCornerRadius(30);
+        drawable.setColor(Color.parseColor(bgcolor));
+        popuplayout.setBackground(drawable);
+
+        final TextView appinfo = tooltip.findViewById(R.id.popup_appinfo);
+        final TextView edit = tooltip.findViewById(R.id.popup_edit);
+        final TextView hide = tooltip.findViewById(R.id.popup_hide);
+        final TextView lock = tooltip.findViewById(R.id.popup_lock);
+        final TextView uninstall = tooltip.findViewById(R.id.popup_uninstall);
+
+        String textColor;
+        double darkness = 1-(0.299*Color.red(Color.parseColor(bgcolor)) + 0.587*Color.green(Color.parseColor(bgcolor)) +
+                0.114*Color.blue(Color.parseColor(bgcolor)))/255;
+        if(darkness<0.5)
+            textColor="#000000";
+        else
+            textColor="#FFFFFF";
+
+        appinfo.setTextColor(Color.parseColor(textColor));
+        edit.setTextColor(Color.parseColor(textColor));
+        hide.setTextColor(Color.parseColor(textColor));
+        lock.setTextColor(Color.parseColor(textColor));
+        uninstall.setTextColor(Color.parseColor(textColor));
+
+        appinfo.findViewById(R.id.popup_appinfo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v2) {
+                if (tooltip.isShowing()) {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + myapp.getPackagename()));
+                    startActivity(intent);
+                    tooltip.dismiss();
+                }
+            }
+        });
+
+        uninstall.findViewById(R.id.popup_uninstall).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v2) {
+                if (tooltip.isShowing()) {
+                    Uri packageURI = Uri.parse("package:" + myapp.getPackagename());
+                    Intent uninstallIntent = new Intent(Intent.ACTION_DELETE, packageURI);
+                    startActivity(uninstallIntent);
+                    tooltip.dismiss();
+                }
+            }
+        });
+
+        tooltip.show();
     }
 
     private HomescreenObject mergeHomeApps(HomescreenObject hso1, HomescreenObject hso2) {
