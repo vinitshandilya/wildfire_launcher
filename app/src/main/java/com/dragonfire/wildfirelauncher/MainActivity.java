@@ -548,7 +548,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         leftbar.setVisibility(View.VISIBLE);
         rightbar.setVisibility(View.VISIBLE);
         myapp = appObject;
-        Log.d("VINIT", "vibrate onAppLongClicked");
         vb.vibrate(15);
         Bitmap bitmap = myapp.getAppicon();
         Palette p = Palette.from(bitmap).generate();
@@ -620,6 +619,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             else {
                 // Either long clicked on empty area
                 // or long clicked on the home app
+                Log.d("CHIKU", "RawY: " + event.getRawY());
                 int W = homescreen.getWidth();
                 int H = homescreen.getHeight();
                 int cursor_x = (int) event.getX();
@@ -627,24 +627,28 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 final int snap_row = Math.round(cursor_y / (H / 6));
                 final int snap_col = Math.round(cursor_x / (W / 5));
 
-                if(getHsoAt(snap_row, snap_col) == null) {
+                if(getHsoOnHome(snap_row, snap_col, event.getRawY()) == null) {
                     selectWidget();
                 }
+                else {
+
+                }
+
             }
         }
     }
 
-    private HomescreenObject getHsoAt(int snap_row, int snap_col) {
+    private HomescreenObject getHsoOnHome(int snap_row, int snap_col, float rawy) {
         HomescreenObject hso = null;
         for(HomescreenObject h : homescreenObjects) {
-            if(h.getIconView().getParent() == homescreen) {
-                if(h.getX() == snap_col && h.getY() == snap_row) {
+            if(rawy < screenHight-dock.getHeight()) {
+                if(h.getX() == snap_col && h.getY() == snap_row && h.getPageNo() != -1) {
                     hso=h;
                     break;
                 }
             }
-            else if(h.getIconView().getParent() == dock) {
-                if(h.getX() == snap_col) {
+            else {
+                if(h.getX() == snap_col && h.getPageNo() == -1) {
                     hso=h;
                     break;
                 }
@@ -1237,7 +1241,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             final int snap_col = Math.round(cursor_x / (W / 5));
 
                             if(drawerAppLongClicked) { // app dragged from drawer, drop on homescreen
-                                Log.d("CHIKU", "Drawer app long clicked: " + myapp.getAppname());
+                                //Log.d("CHIKU", "Drawer app long clicked: " + myapp.getAppname());
                                 drawerAppLongClicked = false;
                                 appgroup.add(myapp);
                                 ImageView appiconview = new ImageView(getBaseContext());
@@ -1255,7 +1259,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                             }
 
                             else if(homeAppLongClicked) { // dragged hso already on homescreen, drop on homescreen
-                                Log.d("CHIKU", "Home app long clicked: " + longClickedHomeApp.getFolder().get(0).getAppname());
+                                //Log.d("CHIKU", "Home app long clicked: " + longClickedHomeApp.getFolder().get(0).getAppname());
                                 //Log.d("COOK", "Home app long clicked");
                                 longClickedHomeApp.setY(snap_row);
                                 longClickedHomeApp.setX(snap_col);
@@ -1290,7 +1294,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         for(HomescreenObject homeobject : homescreenObjects) {
             if(targetLayout.getId() == dock.getId()) { // don't check vertical alignment of dock apps
                 if (hso.getX() == homeobject.getX() && hso.getPageNo() == homeobject.getPageNo()) {
-                    Log.d("COOK", "Merging");
                     hso = mergeHomeApps(hso, homeobject);
                     targetLayout.removeView(homeobject.getIconView());
                     targetLayout.removeView(homeobject.getLabel());
@@ -1300,7 +1303,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
             else { // also check the vertical alignment of homescreen apps
                 if (hso.getX() == homeobject.getX() && hso.getY() == homeobject.getY() && hso.getPageNo() == homeobject.getPageNo()) {
-                    Log.d("COOK", "Merging");
                     hso = mergeHomeApps(hso, homeobject);
                     targetLayout.removeView(homeobject.getIconView());
                     targetLayout.removeView(homeobject.getLabel());
@@ -1311,6 +1313,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         }
 
+        // Add icon to targetlayout
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(120, 120); // size of the icons
         params.topMargin = hso.getY() * (H / 6);
 
@@ -1320,6 +1323,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         params.leftMargin = hso.getX() * (W / 5) + (W/10) - 60;
         targetLayout.addView(hso.getIconView(), params);
 
+        // Add label to targetlayout
         RelativeLayout.LayoutParams labelparams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
                 RelativeLayout.LayoutParams.WRAP_CONTENT);
         hso.getLabel().measure(0, 0);
@@ -1368,7 +1372,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         clickedHso.getIconView().setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                Log.d("CHIKU", "Long clicked on app");
                 //show context menu
                 //make home apps draggable
                 homeAppLongClicked = true; // very important
@@ -1430,16 +1433,18 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     }
                 });
 
-                for(HomescreenObject h : homescreenObjects) {
-                    Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString());
-                    for(AppObject ao : h.getFolder()) {
-                        Log.d("CHIKU", "\t-" + ao.getAppname());
-                    }
-                }
-
                 return false;
             }
         });
+
+        for(HomescreenObject h : homescreenObjects) {
+            Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString() + ", X: " + h.getX() + ", Y: " + h.getY());
+            if(h.isDir()) {
+                for(AppObject ao : h.getFolder()) {
+                    Log.d("CHIKU", "\t|_" + ao.getAppname());
+                }
+            }
+        }
     }
 
     public void scrollToNextPage(int currentindex) {
@@ -1490,7 +1495,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             switch(MotionEventCompat.getActionMasked( ev ) ) {
 
                 case MotionEvent.ACTION_DOWN:
-                    Log.d("COOK", "widget touched down");
                     widgettouched = true;
                     touchedwidget = CustomAppWidgetHostView.this;
                     down = System.currentTimeMillis();
@@ -1500,7 +1504,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     boolean upVal = System.currentTimeMillis() - down > 300L;
                     if( upVal ) {
                         longClick.onLongClick( CustomAppWidgetHostView.this );
-                        Log.d("COOK", "Widget long clicked");
                     }
                     break;
             }
