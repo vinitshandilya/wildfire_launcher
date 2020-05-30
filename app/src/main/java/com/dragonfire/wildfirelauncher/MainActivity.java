@@ -620,22 +620,34 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             else {
                 // Either long clicked on empty area
                 // or long clicked on the home app
-                Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.d("CHIKU", "Generic long click");
-                        if(homeAppLongClicked) {
-                            homeAppLongClicked = false;
-                        }
-                        else {
-                            selectWidget();
-                        }
-                    }
-                }, ViewConfiguration.getLongPressTimeout() + 30);
+                int W = homescreen.getWidth();
+                int H = homescreen.getHeight();
+                int cursor_x = (int) event.getX();
+                int cursor_y = (int) event.getY();
+                final int snap_row = Math.round(cursor_y / (H / 6));
+                final int snap_col = Math.round(cursor_x / (W / 5));
 
+                if(getHsoAt(snap_row, snap_col)!=null) {
+                    //long clicked on hso
+                    // time complexity wise, it's better to keep longclicklistener in
+                    // 'addToHomeScreen method.
+                }
+                else {
+                    selectWidget();
+                }
             }
         }
+    }
+
+    private HomescreenObject getHsoAt(int snap_row, int snap_col) {
+        HomescreenObject hso = null;
+        for(HomescreenObject h : homescreenObjects) {
+            if(h.getX() == snap_col && h.getY() == snap_row) {
+                hso=h;
+                break;
+            }
+        }
+        return hso;
     }
 
     @Override
@@ -1241,11 +1253,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
                             else if(homeAppLongClicked) { // dragged hso already on homescreen, drop on homescreen
                                 Log.d("CHIKU", "Home app long clicked: " + longClickedHomeApp.getFolder().get(0).getAppname());
-                                homeAppLongClicked = false;
                                 //Log.d("COOK", "Home app long clicked");
                                 longClickedHomeApp.setY(snap_row);
                                 longClickedHomeApp.setX(snap_col);
                                 addToHomeScreen(longClickedHomeApp, targetLayout, W, H);
+                                homeAppLongClicked = false;
                             }
                         }
 
