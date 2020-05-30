@@ -627,12 +627,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 final int snap_row = Math.round(cursor_y / (H / 6));
                 final int snap_col = Math.round(cursor_x / (W / 5));
 
-                if(getHsoAt(snap_row, snap_col)!=null) {
-                    //long clicked on hso
-                    // time complexity wise, it's better to keep longclicklistener in
-                    // 'addToHomeScreen method.
-                }
-                else {
+                if(getHsoAt(snap_row, snap_col) == null) {
                     selectWidget();
                 }
             }
@@ -642,9 +637,17 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private HomescreenObject getHsoAt(int snap_row, int snap_col) {
         HomescreenObject hso = null;
         for(HomescreenObject h : homescreenObjects) {
-            if(h.getX() == snap_col && h.getY() == snap_row) {
-                hso=h;
-                break;
+            if(h.getIconView().getParent() == homescreen) {
+                if(h.getX() == snap_col && h.getY() == snap_row) {
+                    hso=h;
+                    break;
+                }
+            }
+            else if(h.getIconView().getParent() == dock) {
+                if(h.getX() == snap_col) {
+                    hso=h;
+                    break;
+                }
             }
         }
         return hso;
@@ -1577,6 +1580,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         return false;
                     }
                 });
+
+                for(HomescreenObject h : homescreenObjects) {
+                    Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString());
+                    for(AppObject ao : h.getFolder()) {
+                        Log.d("CHIKU", "\t-" + ao.getAppname());
+                    }
+                }
 
                 return false;
             }
