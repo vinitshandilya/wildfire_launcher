@@ -1266,6 +1266,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 if(targetLayout.getId() == dock.getId()) {
                                     longClickedHomeApp.setPageNo(-1);
                                 }
+                                else {
+                                    longClickedHomeApp.setPageNo(currPageindex);
+                                }
                                 addToHomeScreen(longClickedHomeApp, targetLayout, W, H);
                                 homeAppLongClicked = false;
                             }
@@ -1418,6 +1421,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 targetLayout.removeView(clickedHso.getLabel());
 
                                 for (HomescreenObject hso : homescreenObjects) {
+                                    //TODO: THIS PIECE DOES NOT REMOVE APPS FROM DOCK AREA, IF THEY'RE MOVED OUT
                                     if (hso.getX() == clickedHso.getX() && hso.getY() == clickedHso.getY()) {
                                         homescreenObjects.remove(hso);
                                         break;
@@ -1438,7 +1442,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
 
         for(HomescreenObject h : homescreenObjects) {
-            Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString() + ", X: " + h.getX() + ", Y: " + h.getY());
+            Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString() + ", X: " + h.getX() + ", Y: " + h.getY() + ", pageNo: " + h.getPageNo());
             if(h.isDir()) {
                 for(AppObject ao : h.getFolder()) {
                     Log.d("CHIKU", "\t|_" + ao.getAppname());
