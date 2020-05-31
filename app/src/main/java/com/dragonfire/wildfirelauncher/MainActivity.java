@@ -27,6 +27,8 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -1145,13 +1147,28 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
         @Override
         protected Void doInBackground(Void... voids) {
-            List<ResolveInfo> untreatedApplist = getApplicationContext().getPackageManager().queryIntentActivities(intent, 0);
+            PackageManager packageManager = getApplicationContext().getPackageManager();
+            List<ResolveInfo> untreatedApplist = packageManager.queryIntentActivities(intent, 0);
             for(ResolveInfo untreatedapp : untreatedApplist) {
                 String appname = untreatedapp.activityInfo.loadLabel(getPackageManager()).toString();
                 String packagename = untreatedapp.activityInfo.packageName;
+                String categoryTitle = "";
+                try {
+                    ApplicationInfo applicationInfo = packageManager.getApplicationInfo(packagename, 0);
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        int appCategory = applicationInfo.category;
+                        categoryTitle = (String) ApplicationInfo.getCategoryTitle(getApplicationContext(), appCategory);
+                    }
+                } catch (PackageManager.NameNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                Log.d("CHIKU", appname + " - " + categoryTitle);
+
+
                 Drawable icon = untreatedapp.activityInfo.loadIcon(getPackageManager());
                 if(!packagename.equals(getApplicationContext().getPackageName())) {
-                    installedAppList.add(new AppObject(appname, packagename, getRoundedBitmapIcon(icon)));
+                    installedAppList.add(new AppObject(appname, packagename, getRoundedBitmapIcon(icon), categoryTitle));
                     //publishProgress();
                 }
             }

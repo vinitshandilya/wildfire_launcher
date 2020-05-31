@@ -4,42 +4,47 @@ import android.graphics.Bitmap;
 
 class AppObject {
 
-    private String appname, packagename;
+    private String appname, packagename, category;
     private Bitmap appicon;
     private long usagetime;
     private int notifcount;
 
-    public AppObject(String appname, String packagename, Bitmap appicon) {
+    AppObject(String appname, String packagename, Bitmap appicon, String category) {
         this.appname = appname;
         this.packagename = packagename;
         this.appicon = appicon;
+        this.category = category;
     }
 
-    public String getAppname() {
+    String getAppname() {
         return appname;
     }
 
-    public String getPackagename() {
+    String getPackagename() {
         return packagename;
     }
 
-    public Bitmap getAppicon() {
+    Bitmap getAppicon() {
         return appicon;
     }
 
-    public void setUsagetime(long usagetime) {
+    public String getCategory() {
+        return category;
+    }
+
+    void setUsagetime(long usagetime) {
         this.usagetime = usagetime;
     }
 
-    public void setNotifcount(int notifcount) {
+    void setNotifcount(int notifcount) {
         this.notifcount = notifcount;
     }
 
-    public int getNotifcount() {
+    int getNotifcount() {
         return notifcount;
     }
 
-    public long getUsagetime() {
+    long getUsagetime() {
         return usagetime;
     }
 }
