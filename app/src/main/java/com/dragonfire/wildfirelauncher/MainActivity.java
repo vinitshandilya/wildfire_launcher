@@ -54,7 +54,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -115,9 +114,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private View leftbar, rightbar;
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
-    private RelativeLayout homescreen, indicatorlayout, droparea;
-    private boolean homeApptouched = false;
-    private HomescreenObject touchedHomeApp;
+    private RelativeLayout homescreen, indicatorlayout;
 
     private float dist_y;
     private float init_y;
@@ -619,7 +616,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             else {
                 // Either long clicked on empty area
                 // or long clicked on the home app
-                Log.d("CHIKU", "RawY: " + event.getRawY());
                 int W = homescreen.getWidth();
                 int H = homescreen.getHeight();
                 int cursor_x = (int) event.getX();
@@ -1342,17 +1338,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         final HomescreenObject clickedHso = hso;
 
-        clickedHso.getIconView().setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if(event.getAction() == MotionEvent.ACTION_DOWN) {
-                    homeApptouched = true;
-                    touchedHomeApp = clickedHso;
-                }
-                return false;
-            }
-        });
-
         //------------ Attach click listener on added homescreenobject ------------//
 
         clickedHso.getIconView().setOnClickListener(new View.OnClickListener() {
@@ -1421,8 +1406,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                                 targetLayout.removeView(clickedHso.getLabel());
 
                                 for (HomescreenObject hso : homescreenObjects) {
-                                    //TODO: THIS PIECE DOES NOT REMOVE APPS FROM DOCK AREA, IF THEY'RE MOVED OUT
-                                    if (hso.getX() == clickedHso.getX() && hso.getY() == clickedHso.getY()) {
+                                    if (hso.getX() == clickedHso.getX() && hso.getY() == clickedHso.getY() && hso.getPageNo() == clickedHso.getPageNo()) {
                                         homescreenObjects.remove(hso);
                                         break;
                                     }
