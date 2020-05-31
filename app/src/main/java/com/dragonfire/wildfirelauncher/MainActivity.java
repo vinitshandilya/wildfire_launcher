@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.core.view.MotionEventCompat;
 import androidx.palette.graphics.Palette;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 import in.srain.cube.views.GridViewWithHeaderAndFooter;
 import io.github.douglasjunior.androidSimpleTooltip.ArrowDrawable;
@@ -117,6 +119,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private SimpleTooltip tooltip;
     private boolean homeAppLongClicked = false;
     private RelativeLayout homescreen, indicatorlayout;
+    private ArrayList<String> appCategories = new ArrayList<>();
+    private CategoryAdapter categoryAdapter;
 
     private float dist_y;
     private float init_y;
@@ -215,6 +219,15 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         homescreenObjects = new ArrayList<>();
         timeSortedApps = new ArrayList<>();
         first4 = new ArrayList<>();
+
+        // Initialize category recyclerView for showing the App category
+        RecyclerView category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
+        category_recyclerView.setHasFixedSize(true);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        category_recyclerView.setLayoutManager(layoutManager);
+        category_recyclerView.setNestedScrollingEnabled(false); // Very important or else drawer apps wouldn't scroll
+        categoryAdapter = new CategoryAdapter(this, appCategories);
+        category_recyclerView.setAdapter(categoryAdapter);
 
         LoadInstalledApps appLoader = new LoadInstalledApps();
         appLoader.execute();
@@ -1162,6 +1175,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 } catch (PackageManager.NameNotFoundException e) {
                     e.printStackTrace();
                 }
+                if(categoryTitle != null)
+                    appCategories.add(categoryTitle);
 
                 Log.d("CHIKU", appname + " - " + categoryTitle);
 
@@ -1191,6 +1206,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         @Override
         protected void onProgressUpdate(Void... values) {
             gridAdapter.notifyDataSetChanged();
+            categoryAdapter.notifyDataSetChanged();
+
         }
 
         @Override
