@@ -1165,17 +1165,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             for(ResolveInfo untreatedapp : untreatedApplist) {
                 String appname = untreatedapp.activityInfo.loadLabel(getPackageManager()).toString();
                 String packagename = untreatedapp.activityInfo.packageName;
-                String categoryTitle = "";
+                String categoryTitle = "Others";
                 try {
                     ApplicationInfo applicationInfo = packageManager.getApplicationInfo(packagename, 0);
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                         int appCategory = applicationInfo.category;
                         categoryTitle = (String) ApplicationInfo.getCategoryTitle(getApplicationContext(), appCategory);
+                        if(categoryTitle == null)
+                            categoryTitle = "Others";
                     }
                 } catch (PackageManager.NameNotFoundException e) {
                     e.printStackTrace();
+                    categoryTitle = "Others";
                 }
-                if(categoryTitle != null)
+
+                if(!appCategories.contains(categoryTitle))
                     appCategories.add(categoryTitle);
 
                 Log.d("CHIKU", appname + " - " + categoryTitle);
