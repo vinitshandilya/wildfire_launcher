@@ -226,6 +226,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         category_recyclerView.setLayoutManager(layoutManager);
         category_recyclerView.setNestedScrollingEnabled(false); // Very important or else drawer apps wouldn't scroll
+        appCategories.add("All apps");
         categoryAdapter = new CategoryAdapter(this, appCategories);
         category_recyclerView.setAdapter(categoryAdapter);
 

@@ -7,6 +7,13 @@
     <color name="colorGray">#A4C639</color>
     <color name="colorGrayAlpha80">#80A4C639</color>
 
+    <color name="pressed_color">#000000</color>
+    <color name="selected_color">#000000</color>
+    <color name="focused_color">#000000</color>
+
+
+
+
 
 
 </resources>

@@ -8,7 +8,7 @@
         android:id="@+id/category_item_textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/textbox_bg"
+        android:background="@drawable/category_selector_bg"
         android:text="Category"
         android:textSize="12sp"
         android:textColor="@color/colorAccent"
