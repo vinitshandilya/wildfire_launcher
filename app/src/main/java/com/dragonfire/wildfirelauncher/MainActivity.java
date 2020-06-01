@@ -89,7 +89,7 @@ import java.util.Objects;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener,
-        AppClickListener, AppDragListener, AppLongClickListener, NotificationInterface, FragmentLoadListener {
+        AppClickListener, AppDragListener, AppLongClickListener, NotificationInterface, FragmentLoadListener, CategorySelectListener {
 
     private static final int MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 10;
     private GestureDetectorCompat mDetector;
@@ -121,6 +121,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private RelativeLayout homescreen, indicatorlayout;
     private ArrayList<String> appCategories = new ArrayList<>();
     private CategoryAdapter categoryAdapter;
+    private TextView headerTitle;
 
     private float dist_y;
     private float init_y;
@@ -211,6 +212,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         drawerGridView = findViewById(R.id.grid);
         LayoutInflater layoutInflater = LayoutInflater.from(this);
         View headerview = layoutInflater.inflate(R.layout.drawer_header, null);
+        headerTitle = headerview.findViewById(R.id.header_title);
         drawerGridView.addHeaderView(headerview);
 
         new MyNotificationListenerService().setListener(this);
@@ -228,6 +230,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         category_recyclerView.setNestedScrollingEnabled(false); // Very important or else drawer apps wouldn't scroll
         appCategories.add("All apps");
         categoryAdapter = new CategoryAdapter(this, appCategories);
+        categoryAdapter.setmCategorySelectListener(this);
         category_recyclerView.setAdapter(categoryAdapter);
 
         LoadInstalledApps appLoader = new LoadInstalledApps();
@@ -856,6 +859,35 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean onDoubleTapEvent(MotionEvent e) {
         return false;
+    }
+
+    @Override
+    public void onAppCategorySelected(String category) {
+        vb.vibrate(20);
+        List<AppObject> filteredApps = new ArrayList<>();
+        gridAdapter = new AppAdapter(getBaseContext(), filteredApps);
+        drawerGridView.setAdapter(gridAdapter);
+        gridAdapter.setmAppClickListener(MainActivity.this);
+        gridAdapter.setmAppLongClickListener(MainActivity.this);
+        gridAdapter.setmAppDragListener(MainActivity.this);
+
+        if(!category.equals("All apps")) {
+            for(AppObject currentApp : installedAppList) {
+                if(currentApp.getCategory().equals(category)) {
+                    filteredApps.add(currentApp);
+                    gridAdapter.notifyDataSetChanged();
+                }
+            }
+        }
+        else {
+            filteredApps.addAll(installedAppList);
+            gridAdapter.notifyDataSetChanged();
+        }
+
+        headerTitle.setText(category + " (" + filteredApps.size() + ")");
+
+
+
     }
 
     public class PackageListener extends BroadcastReceiver { // need to fix

@@ -14,8 +14,7 @@
         <androidx.recyclerview.widget.RecyclerView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/category_recyclerView"
-            android:scrollbars="horizontal" />
+            android:id="@+id/category_recyclerView" />
 
         <GridView
             android:id="@+id/recent_apps_grid_view"
@@ -27,6 +26,7 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/header_title"
         android:layout_marginTop="20dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

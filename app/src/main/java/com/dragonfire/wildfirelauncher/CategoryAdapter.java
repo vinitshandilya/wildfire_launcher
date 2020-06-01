@@ -19,10 +19,15 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
     Context context;
     private static final String TAG = "CategoryAdapter";
     private int selectedPos = RecyclerView.NO_POSITION;
+    private CategorySelectListener mCategorySelectListener;
 
     public CategoryAdapter(Context context, ArrayList<String> categories) {
         this.context = context;
         this.categories = categories;
+    }
+
+    public void setmCategorySelectListener(CategorySelectListener mCategorySelectListener) {
+        this.mCategorySelectListener = mCategorySelectListener;
     }
 
     @NonNull
@@ -46,10 +51,12 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         holder.categoryTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(context, categories.get(position), Toast.LENGTH_SHORT).show();
                 notifyItemChanged(selectedPos);
                 selectedPos = holder.getLayoutPosition();
                 notifyItemChanged(selectedPos);
+                if(mCategorySelectListener != null) {
+                    mCategorySelectListener.onAppCategorySelected(categories.get(position));
+                }
             }
         });
 
