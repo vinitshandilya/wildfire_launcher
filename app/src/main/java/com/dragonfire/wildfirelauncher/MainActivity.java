@@ -335,6 +335,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         gridAdapter.notifyDataSetChanged();
                     }
                 }
+
+                if(!s.toString().isEmpty())
+                    recentappsGridView.setVisibility(View.GONE);
+                else
+                    recentappsGridView.setVisibility(View.VISIBLE);
             }
         });
 
