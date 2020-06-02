@@ -120,8 +120,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private boolean homeAppLongClicked = false;
     private RelativeLayout homescreen, indicatorlayout;
     private ArrayList<String> appCategories = new ArrayList<>();
+    private ArrayList<AppObject> initialHomeApps = new ArrayList<>();
     private CategoryAdapter categoryAdapter;
     private TextView headerTitle;
+    private RecyclerView category_recyclerView;
 
     private float dist_y;
     private float init_y;
@@ -223,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         first4 = new ArrayList<>();
 
         // Initialize category recyclerView for showing the App category
-        RecyclerView category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
+        category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
         category_recyclerView.setHasFixedSize(true);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         category_recyclerView.setLayoutManager(layoutManager);
@@ -836,7 +838,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean onDoubleTap(MotionEvent e) {
 
-        final int cat_index = (new Random()).nextInt(categories.length - 1);
+        unsplash.searchPhotos("wallpapers", 1, 20, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
+            @Override
+            public void onComplete(SearchResults results) {
+                List<Photo> photos = results.getResults();
+                int index = (new Random()).nextInt(photos.size()-1);
+                Log.d("unsplash", "category: " + "wallpapers" + ", photo number: " + index);
+                setWallpaper(photos.get(index).getUrls().getRegular());
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.d("unsplash", error);
+                Toast.makeText(getBaseContext(), "Couldn't download. Try again", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        /*final int cat_index = (new Random()).nextInt(categories.length - 1);
         unsplash.searchPhotos(categories[cat_index], 1, 10, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
             @Override
             public void onComplete(SearchResults results) {
@@ -851,9 +869,74 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 Log.d("unsplash", error);
                 Toast.makeText(getBaseContext(), "Couldn't download. Try again", Toast.LENGTH_SHORT).show();
             }
-        });
+        });*/
+
+        /*unsplash.getRandomPhotos(null, true, null, null,
+                null, null, Unsplash.ORIENTATION_PORTRAIT, 30, new Unsplash.OnPhotosLoadedListener() {
+                    @Override
+                    public void onComplete(List<Photo> photos) {
+                        for(Photo photo : photos) {
+                            Log.d("unsplash:random photos ", photo.getUrls().getRegular());
+                        }
+                        int index = (new Random()).nextInt(10);
+                        setWallpaper(photos.get(index).getUrls().getRegular());
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.d("unsplash", error);
+                    }
+                });*/
+
+        /*unsplash.getPhotos(1, 50, Order.LATEST, new Unsplash.OnPhotosLoadedListener() {
+            @Override
+            public void onComplete(List<Photo> photos) {
+                int photoCount = photos.size();
+                Log.d("unsplash", photoCount + "");
+                for(Photo photo : photos) {
+                    Log.d("unsplash", photo.getUrls().getRegular());
+                }
+                int index = (new Random()).nextInt(photoCount-1);
+                setWallpaper(photos.get(index).getUrls().getRegular());
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.v("Error", error);
+            }
+        });*/
 
         return false;
+    }
+
+    private void setWallpaper(String url) {
+        Picasso.with(getBaseContext()).load(url).into(new Target() {
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+                Log.d("unsplash", "Getting ready to get the image");
+                Toast.makeText(getBaseContext(), "Downloading wallpaper", Toast.LENGTH_SHORT).show();
+                //Here you should place a loading gif in the ImageView
+                //while image is being obtained.
+            }
+
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                Log.d("unsplash", "The image was obtained correctly");
+                Toast.makeText(getBaseContext(), "Wallpaper set", Toast.LENGTH_SHORT).show();
+                WallpaperManager wallpaperManager = WallpaperManager.getInstance(getBaseContext());
+                try {
+                    wallpaperManager.setBitmap(bitmap);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+                Log.d("Wallpaper", "The image was not obtained");
+                Toast.makeText(getBaseContext(), "Download failed", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -885,9 +968,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         }
 
         headerTitle.setText(category + " (" + filteredApps.size() + ")");
-
-
-
     }
 
     public class PackageListener extends BroadcastReceiver { // need to fix
@@ -991,36 +1071,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         return pw;
 
-    }
-
-    private void setWallpaper(String url) {
-        Picasso.with(getBaseContext()).load(url).into(new Target() {
-            @Override
-            public void onPrepareLoad(Drawable placeHolderDrawable) {
-                Log.d("Wallpaper", "Getting ready to get the image");
-                Toast.makeText(getBaseContext(), "Downloading wallpaper", Toast.LENGTH_SHORT).show();
-                //Here you should place a loading gif in the ImageView
-                //while image is being obtained.
-            }
-
-            @Override
-            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                Log.d("Wallpaper", "The image was obtained correctly");
-                Toast.makeText(getBaseContext(), "Wallpaper set", Toast.LENGTH_SHORT).show();
-                WallpaperManager wallpaperManager = WallpaperManager.getInstance(getBaseContext());
-                try {
-                    wallpaperManager.setBitmap(bitmap);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onBitmapFailed(Drawable errorDrawable) {
-                Log.d("Wallpaper", "The image was not obtained");
-                Toast.makeText(getBaseContext(), "Download failed", Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private Bitmap generateFolderIcon(ArrayList<Bitmap> bitmaps) {
@@ -1207,6 +1257,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                         if(categoryTitle == null)
                             categoryTitle = "Others";
                     }
+
                 } catch (PackageManager.NameNotFoundException e) {
                     e.printStackTrace();
                     categoryTitle = "Others";
@@ -1215,12 +1266,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 if(!appCategories.contains(categoryTitle))
                     appCategories.add(categoryTitle);
 
-                Log.d("CHIKU", appname + " - " + categoryTitle);
+                Log.d("CHIKU", "Package: " + packagename + ", Title: " + appname + ", Category: " + categoryTitle);
 
 
                 Drawable icon = untreatedapp.activityInfo.loadIcon(getPackageManager());
                 if(!packagename.equals(getApplicationContext().getPackageName())) {
-                    installedAppList.add(new AppObject(appname, packagename, getRoundedBitmapIcon(icon), categoryTitle));
+                    AppObject ao = new AppObject(appname, packagename, getRoundedBitmapIcon(icon), categoryTitle);
+                    installedAppList.add(ao);
+
+                    if(packagename.toLowerCase().contains("phone") ||
+                            packagename.toLowerCase().contains("message") ||
+                            packagename.toLowerCase().contains("browser") ||
+                            packagename.toLowerCase().contains("whatsapp") ||
+                            packagename.toLowerCase().contains("camera") ||
+                            packagename.toLowerCase().contains("chrome")) {
+                        initialHomeApps.add(ao);
+                    }
+
                     //publishProgress();
                 }
             }
@@ -1242,8 +1304,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         @Override
         protected void onProgressUpdate(Void... values) {
-            gridAdapter.notifyDataSetChanged();
-            categoryAdapter.notifyDataSetChanged();
+            //gridAdapter.notifyDataSetChanged();
+            //categoryAdapter.notifyDataSetChanged();
 
         }
 
@@ -1251,9 +1313,21 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         protected void onPostExecute(Void aVoid) {
             gridAdapter.notifyDataSetChanged();
             recentappadapter.notifyDataSetChanged();
+            categoryAdapter.notifyDataSetChanged();
 
-            //
-
+            for(int i=0; i< Math.min(initialHomeApps.size(), 5); i++) {
+                List<AppObject> folder = new ArrayList<>();
+                folder.add(initialHomeApps.get(i));
+                ImageView appiconview = new ImageView(getBaseContext());
+                appiconview.setImageBitmap(initialHomeApps.get(i).getAppicon());
+                TextView label = new TextView(getBaseContext());
+                label.setText(initialHomeApps.get(i).getAppname());
+                label.setSingleLine();
+                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+                label.setTextColor(Color.WHITE);
+                HomescreenObject hso = new HomescreenObject(folder, i, 0, false, appiconview, label, -1);
+                addToHomeScreen(hso, dock, dock.getWidth(), dock.getHeight());
+            }
         }
     }
 
