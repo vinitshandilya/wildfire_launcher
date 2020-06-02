@@ -124,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private CategoryAdapter categoryAdapter;
     private TextView headerTitle;
     private RecyclerView category_recyclerView;
+    private GridView recentappsGridView;
 
     private float dist_y;
     private float init_y;
@@ -249,8 +250,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         recentappadapter.setmAppClickListener(MainActivity.this);
         recentappadapter.setmAppDragListener(MainActivity.this);
         recentappadapter.setmAppLongClickListener(MainActivity.this);
-        GridView headergrid = headerview.findViewById(R.id.recent_apps_grid_view);
-        headergrid.setAdapter(recentappadapter);
+        recentappsGridView = headerview.findViewById(R.id.recent_apps_grid_view);
+        recentappsGridView.setAdapter(recentappadapter);
 
         mBottomSheetBehavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
@@ -705,8 +706,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 //bottomSheet.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
                 //coordinatorLayout.setBackgroundColor(Color.argb((int)alpha, 255, 255, 255));
             }
-
-
         }
 
         return true;
@@ -955,6 +954,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         gridAdapter.setmAppDragListener(MainActivity.this);
 
         if(!category.equals("All apps")) {
+            recentappsGridView.setVisibility(View.GONE);
             for(AppObject currentApp : installedAppList) {
                 if(currentApp.getCategory().equals(category)) {
                     filteredApps.add(currentApp);
@@ -963,6 +963,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             }
         }
         else {
+            recentappsGridView.setVisibility(View.VISIBLE);
             filteredApps.addAll(installedAppList);
             gridAdapter.notifyDataSetChanged();
         }
