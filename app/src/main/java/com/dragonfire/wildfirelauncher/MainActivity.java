@@ -103,7 +103,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private EditText searchbar;
     private PackageListener mPackageListener;
     private PopupWindow folderpopupwindow;
-    private View bottomSheet;
     private List<HomescreenObject> homescreenObjects;
     private List<AppObject> first4;
     private Vibrator vb;
@@ -123,7 +122,6 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private ArrayList<AppObject> initialHomeApps = new ArrayList<>();
     private CategoryAdapter categoryAdapter;
     private TextView headerTitle;
-    private RecyclerView category_recyclerView;
     private GridView recentappsGridView;
 
     private float dist_y;
@@ -208,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         mDetector = new GestureDetectorCompat(this,this);
 
-        bottomSheet = findViewById(R.id.bottom_sheet);
+        View bottomSheet = findViewById(R.id.bottom_sheet);
         mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         mBottomSheetBehavior.setHideable(true);
 
@@ -226,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         first4 = new ArrayList<>();
 
         // Initialize category recyclerView for showing the App category
-        category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
+        RecyclerView category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
         category_recyclerView.setHasFixedSize(true);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         category_recyclerView.setLayoutManager(layoutManager);
