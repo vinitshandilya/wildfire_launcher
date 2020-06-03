@@ -124,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private TextView headerTitle;
     private GridView recentappsGridView;
     private RecyclerView category_recyclerView;
+    private boolean packageAdded = false;
 
     private float dist_y;
     private float init_y;
@@ -997,13 +998,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 String package_name = packagearray[packagearray.length-1];
 
                 if(actionStr.equals("PACKAGE_REMOVED")) {
+                    Log.d("CHIKU", package_name + " removed");
                     installedAppList.remove(getAppObjectByPackageName(package_name));
                     gridAdapter.notifyDataSetChanged();
+                    selectCategoryPosition(0);
                 }
                 if(actionStr.equals("PACKAGE_ADDED")) {
-                    installedAppList.clear();
-                    gridAdapter.notifyDataSetChanged();
-                    (new LoadInstalledApps()).execute();
+                    Log.d("CHIKU", package_name + " installed");
+                    packageAdded = true;
                 }
             }
         }
@@ -1281,14 +1283,12 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 if(!appCategories.contains(categoryTitle))
                     appCategories.add(categoryTitle);
 
-                Log.d("CHIKU", "Package: " + packagename + ", Title: " + appname + ", Category: " + categoryTitle);
-
-
                 Drawable icon = untreatedapp.activityInfo.loadIcon(getPackageManager());
                 if(!packagename.equals(getApplicationContext().getPackageName())) {
                     AppObject ao = new AppObject(appname, packagename, getRoundedBitmapIcon(icon), categoryTitle);
                     installedAppList.add(ao);
 
+                    // Do this only for the first time
                     if(packagename.toLowerCase().contains("phone") ||
                             packagename.toLowerCase().contains("message") ||
                             packagename.toLowerCase().contains("browser") ||
@@ -1594,7 +1594,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString() + ", X: " + h.getX() + ", Y: " + h.getY() + ", pageNo: " + h.getPageNo());
             if(h.isDir()) {
                 for(AppObject ao : h.getFolder()) {
-                    Log.d("CHIKU", "\t|_" + ao.getAppname());
+                    Log.d("CHIKU", "\t|--" + ao.getAppname());
                 }
             }
         }
@@ -1868,4 +1868,19 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d("CHIKU", "Activity came to foreground");
+        if(packageAdded) {
+            packageAdded = false;
+            Toast.makeText(getBaseContext(), "Refreshing list", Toast.LENGTH_SHORT).show();
+            Log.d("CHIKU", "New app install detected. Reloading apps list");
+            installedAppList.clear();
+            gridAdapter.notifyDataSetChanged();
+            (new LoadInstalledApps()).execute();
+            gridAdapter.notifyDataSetChanged();
+            selectCategoryPosition(0);
+        }
+    }
 }
