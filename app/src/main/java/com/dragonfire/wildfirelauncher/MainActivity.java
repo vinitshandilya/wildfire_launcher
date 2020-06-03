@@ -94,8 +94,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private static final int MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS = 10;
     private GestureDetectorCompat mDetector;
     private BottomSheetBehavior mBottomSheetBehavior;
-    private List<AppObject> installedAppList;
-    private List<AppObject> timeSortedApps;
+    private List<AppObject> installedAppList = new ArrayList<>();
+    private List<AppObject> timeSortedApps = new ArrayList<>();
     private AppAdapter gridAdapter;
     private AppAdapter recentappadapter;
     private boolean drawerExpanded=false;
@@ -103,8 +103,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private EditText searchbar;
     private PackageListener mPackageListener;
     private PopupWindow folderpopupwindow;
-    private List<HomescreenObject> homescreenObjects;
-    private List<AppObject> first4;
+    private List<HomescreenObject> homescreenObjects = new ArrayList<>();
+    private List<AppObject> first4 = new ArrayList<>();
     private Vibrator vb;
     private boolean sortbyusage = false;
     private List<BlankPage> pages;
@@ -123,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     private CategoryAdapter categoryAdapter;
     private TextView headerTitle;
     private GridView recentappsGridView;
+    private RecyclerView category_recyclerView;
 
     private float dist_y;
     private float init_y;
@@ -218,13 +219,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         new MyNotificationListenerService().setListener(this);
 
-        installedAppList = new ArrayList<>();
-        homescreenObjects = new ArrayList<>();
-        timeSortedApps = new ArrayList<>();
-        first4 = new ArrayList<>();
 
         // Initialize category recyclerView for showing the App category
-        RecyclerView category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
+        category_recyclerView = headerview.findViewById(R.id.category_recyclerView);
         category_recyclerView.setHasFixedSize(true);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         category_recyclerView.setLayoutManager(layoutManager);
@@ -312,9 +309,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
 
         searchbar.addTextChangedListener(new TextWatcher() {
+            //String initial_title;
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+                /*if(s.toString().isEmpty()) {
+                    initial_title = headerTitle.getText().toString();
+                }
+                Log.d("CHIKU", "beforeTextChanged: " + initial_title + ", " + s + ", " + start + ", " + count + ", " + after);*/
             }
 
             @Override
@@ -336,10 +337,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     }
                 }
 
-                if(!s.toString().isEmpty())
+                if(!s.toString().isEmpty()) {
+                    category_recyclerView.setVisibility(View.GONE);
                     recentappsGridView.setVisibility(View.GONE);
-                else
+                    headerTitle.setText("(" + filteredApps.size() + ") app(s) found");
+                }
+
+                else {
+                    category_recyclerView.setVisibility(View.VISIBLE);
                     recentappsGridView.setVisibility(View.VISIBLE);
+                    //headerTitle.setText(initial_title);
+                    selectCategoryPosition(0); // Jump to "All apps"
+                    hideKeypad();
+                }
+
             }
         });
 
@@ -1319,6 +1330,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             recentappadapter.notifyDataSetChanged();
             categoryAdapter.notifyDataSetChanged();
 
+            // Once all app categories are loaded
+            // Select the "All apps" category to display
+            // all apps to user the first drawer is loaded
+            selectCategoryPosition(0);
+
             for(int i=0; i< Math.min(initialHomeApps.size(), 5); i++) {
                 List<AppObject> folder = new ArrayList<>();
                 folder.add(initialHomeApps.get(i));
@@ -1836,6 +1852,20 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 e.printStackTrace();
             }
         }
+    }
+
+    private void selectCategoryPosition(final int pos) {
+        category_recyclerView.scrollToPosition(0);
+        category_recyclerView.post(new Runnable() {
+            @Override
+            public void run() {
+                RecyclerView.ViewHolder v = category_recyclerView.findViewHolderForAdapterPosition(pos);
+                if(v != null)
+                    v.itemView.findViewById(R.id.category_item_textView).performClick();
+                categoryAdapter.notifyDataSetChanged();
+            }
+        });
+
     }
 
 }
