@@ -962,25 +962,25 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     public void onAppCategorySelected(String category) {
         vb.vibrate(20);
         List<AppObject> filteredApps = new ArrayList<>();
-        gridAdapter = new AppAdapter(getBaseContext(), filteredApps);
-        drawerGridView.setAdapter(gridAdapter);
-        gridAdapter.setmAppClickListener(MainActivity.this);
-        gridAdapter.setmAppLongClickListener(MainActivity.this);
-        gridAdapter.setmAppDragListener(MainActivity.this);
+        AppAdapter categoryFilterAdapter = new AppAdapter(getBaseContext(), filteredApps);
+        drawerGridView.setAdapter(categoryFilterAdapter);
+        categoryFilterAdapter.setmAppClickListener(MainActivity.this);
+        categoryFilterAdapter.setmAppLongClickListener(MainActivity.this);
+        categoryFilterAdapter.setmAppDragListener(MainActivity.this);
 
         if(!category.equals("All apps")) {
             recentappsGridView.setVisibility(View.GONE);
             for(AppObject currentApp : installedAppList) {
                 if(currentApp.getCategory().equals(category)) {
                     filteredApps.add(currentApp);
-                    gridAdapter.notifyDataSetChanged();
+                    categoryFilterAdapter.notifyDataSetChanged();
                 }
             }
         }
         else {
             recentappsGridView.setVisibility(View.VISIBLE);
             filteredApps.addAll(installedAppList);
-            gridAdapter.notifyDataSetChanged();
+            categoryFilterAdapter.notifyDataSetChanged();
         }
 
         headerTitle.setText(category + " (" + filteredApps.size() + ")");
@@ -1001,7 +1001,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     Log.d("CHIKU", package_name + " removed");
                     installedAppList.remove(getAppObjectByPackageName(package_name));
                     gridAdapter.notifyDataSetChanged();
-                    selectCategoryPosition(0);
+                    //selectCategoryPosition(0);
                 }
                 if(actionStr.equals("PACKAGE_ADDED")) {
                     Log.d("CHIKU", package_name + " installed");
@@ -1333,7 +1333,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             // Once all app categories are loaded
             // Select the "All apps" category to display
             // all apps to user the first drawer is loaded
-            selectCategoryPosition(0);
+            //selectCategoryPosition(0);
 
             for(int i=0; i< Math.min(initialHomeApps.size(), 5); i++) {
                 List<AppObject> folder = new ArrayList<>();
@@ -1877,10 +1877,9 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             Toast.makeText(getBaseContext(), "Refreshing list", Toast.LENGTH_SHORT).show();
             Log.d("CHIKU", "New app install detected. Reloading apps list");
             installedAppList.clear();
-            gridAdapter.notifyDataSetChanged();
             (new LoadInstalledApps()).execute();
             gridAdapter.notifyDataSetChanged();
-            selectCategoryPosition(0);
+            //selectCategoryPosition(0);
         }
     }
 }
