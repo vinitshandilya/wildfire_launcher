@@ -48,6 +48,7 @@ import android.os.Handler;
 import android.os.Vibrator;
 import android.provider.Settings;
 import android.text.Editable;
+import android.text.SpannableString;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -144,6 +145,8 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     static int REQUEST_PICK_APPWIDGET = 10;
     static int REQUEST_CREATE_APPWIDGET = 11;
     static int appWidgetId;
+
+    private static final String TAG = "VINIT";
 
     final static Unsplash unsplash = new Unsplash("m7_7e-ldwcFyQ1SkbFJcNNFwE8TkIVWe1itmKvV3yrs");
 
@@ -348,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                     category_recyclerView.setVisibility(View.VISIBLE);
                     recentappsGridView.setVisibility(View.VISIBLE);
                     //headerTitle.setText(initial_title);
-                    selectCategoryPosition(0); // Jump to "All apps"
+                    //selectCategoryPosition(0); // Jump to "All apps"
                     hideKeypad();
                 }
 
@@ -769,14 +772,14 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         if (resultCode == RESULT_OK) {
 
             if(requestCode == MY_PERMISSIONS_REQUEST_PACKAGE_USAGE_STATS) {
-                Log.d("COOK", "usage stats permission granted");
+                Log.d(TAG, "usage stats permission granted");
             }
 
             if (requestCode == REQUEST_PICK_APPWIDGET) {
-                Log.d("VINIT", "Configure widget");
+                Log.d(TAG, "Configure widget");
                 configureWidget(data);
             } else if (requestCode == REQUEST_CREATE_APPWIDGET) {
-                Log.d("VINIT", "Create widget");
+                Log.d(TAG, "Create widget");
                 createWidget(data);
             }
         } else if (resultCode == RESULT_CANCELED && data != null) {
@@ -796,10 +799,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
             Intent intent = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
             intent.setComponent(appWidgetInfo.configure);
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-            Log.d("VINIT", "configureWidget: configure not null");
+            Log.d(TAG, "configureWidget: configure not null");
             startActivityForResult(intent, REQUEST_CREATE_APPWIDGET);
         } else {
-            Log.d("VINIT", "configureWidget: configure is null");
+            Log.d(TAG, "configureWidget: configure is null");
             createWidget(data);
         }
     }
@@ -838,7 +841,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
         }
         else {
-            Log.d("VINIT", "createWidget: null data");
+            Log.d(TAG, "createWidget: null data");
         }
     }
 
@@ -852,18 +855,23 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     public boolean onDoubleTap(MotionEvent e) {
 
-        unsplash.searchPhotos("wallpapers", 1, 20, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
+        unsplash.searchPhotos("wallpaper", 1, 20, Unsplash.ORIENTATION_PORTRAIT, new Unsplash.OnSearchCompleteListener() {
             @Override
             public void onComplete(SearchResults results) {
                 List<Photo> photos = results.getResults();
-                int index = (new Random()).nextInt(photos.size()-1);
-                Log.d("unsplash", "category: " + "wallpapers" + ", photo number: " + index);
-                setWallpaper(photos.get(index).getUrls().getRegular());
+                if(!photos.isEmpty()) {
+                    int index = (new Random()).nextInt(photos.size()-1);
+                    Log.d(TAG, "category: " + "wallpapers" + ", photo number: " + index);
+                    setWallpaper(photos.get(index).getUrls().getRegular());
+                }
+                else {
+                    Toast.makeText(getBaseContext(), "No wallpaper found", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onError(String error) {
-                Log.d("unsplash", error);
+                Log.d(TAG, error);
                 Toast.makeText(getBaseContext(), "Couldn't download. Try again", Toast.LENGTH_SHORT).show();
             }
         });
@@ -927,7 +935,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         Picasso.with(getBaseContext()).load(url).into(new Target() {
             @Override
             public void onPrepareLoad(Drawable placeHolderDrawable) {
-                Log.d("unsplash", "Getting ready to get the image");
+                Log.d(TAG, "Getting ready to get the image");
                 Toast.makeText(getBaseContext(), "Downloading wallpaper", Toast.LENGTH_SHORT).show();
                 //Here you should place a loading gif in the ImageView
                 //while image is being obtained.
@@ -935,7 +943,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                Log.d("unsplash", "The image was obtained correctly");
+                Log.d(TAG, "The image was obtained correctly");
                 Toast.makeText(getBaseContext(), "Wallpaper set", Toast.LENGTH_SHORT).show();
                 WallpaperManager wallpaperManager = WallpaperManager.getInstance(getBaseContext());
                 try {
@@ -947,7 +955,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
 
             @Override
             public void onBitmapFailed(Drawable errorDrawable) {
-                Log.d("Wallpaper", "The image was not obtained");
+                Log.d(TAG, "The image was not obtained");
                 Toast.makeText(getBaseContext(), "Download failed", Toast.LENGTH_SHORT).show();
             }
         });
@@ -998,13 +1006,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
                 String package_name = packagearray[packagearray.length-1];
 
                 if(actionStr.equals("PACKAGE_REMOVED")) {
-                    Log.d("CHIKU", package_name + " removed");
+                    Log.d(TAG, package_name + " removed");
                     installedAppList.remove(getAppObjectByPackageName(package_name));
                     gridAdapter.notifyDataSetChanged();
                     //selectCategoryPosition(0);
                 }
                 if(actionStr.equals("PACKAGE_ADDED")) {
-                    Log.d("CHIKU", package_name + " installed");
+                    Log.d(TAG, package_name + " installed");
                     packageAdded = true;
                 }
             }
@@ -1199,13 +1207,13 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         String ticker = bundle.getString("TICKER_TEXT", "");
 
         String str = "notif added: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
-        Log.d("VINIT", str);
+        Log.d(TAG, str);
 
         AppObject app = getAppObjectByPackageName(package_name);
         if(app!=null) {
-            Log.d("VINIT", app.getAppname() + " notification received");
+            Log.d(TAG, app.getAppname() + " notification received");
             app.setNotifcount(app.getNotifcount()+1);
-            gridAdapter.notifyDataSetChanged();
+            gridAdapter.notifyDataSetChanged(); // to draw the badge
             recentappadapter.notifyDataSetChanged();
         }
     }
@@ -1218,7 +1226,7 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         String ticker = bundle.getString("TICKER_TEXT", "");
 
         String str = "notif removed: package name: " + package_name + " title: " + title + " subtext: " + text + " ticker: " + ticker;
-        Log.d("VINIT", str);
+        Log.d(TAG, str);
 
         AppObject app = getAppObjectByPackageName(package_name);
         if(app!=null) {
@@ -1591,10 +1599,10 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
         });
 
         for(HomescreenObject h : homescreenObjects) {
-            Log.d("CHIKU", ((TextView)h.getLabel()).getText().toString() + ", X: " + h.getX() + ", Y: " + h.getY() + ", pageNo: " + h.getPageNo());
+            Log.d(TAG, ((TextView)h.getLabel()).getText().toString() + ", X: " + h.getX() + ", Y: " + h.getY() + ", pageNo: " + h.getPageNo());
             if(h.isDir()) {
                 for(AppObject ao : h.getFolder()) {
-                    Log.d("CHIKU", "\t|--" + ao.getAppname());
+                    Log.d(TAG, "\t|--" + ao.getAppname());
                 }
             }
         }
@@ -1871,11 +1879,11 @@ public class MainActivity extends AppCompatActivity implements GestureDetector.O
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d("CHIKU", "Activity came to foreground");
+        Log.d(TAG, "Activity came to foreground");
         if(packageAdded) {
             packageAdded = false;
             Toast.makeText(getBaseContext(), "Refreshing list", Toast.LENGTH_SHORT).show();
-            Log.d("CHIKU", "New app install detected. Reloading apps list");
+            Log.d(TAG, "New app install detected. Reloading apps list");
             installedAppList.clear();
             (new LoadInstalledApps()).execute();
             gridAdapter.notifyDataSetChanged();
